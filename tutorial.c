@@ -22,6 +22,7 @@ typedef struct {
 int isAlphanumeric(char *);
 int getCommand(char *);
 directory createFile(directory, char *);
+directory createDirectory(directory, char *);
 char* getNeedle(char *, int);
 
 int main() {
@@ -35,6 +36,9 @@ int main() {
         if( 1 == isAlphanumeric(command) ) {
             nCommand = getCommand(command);
             switch (nCommand) {
+                case 1:
+                    root = createDirectory(root, command);
+                break;
                 case 2:
                     root = createFile(root, command);
                 break;
@@ -107,6 +111,43 @@ directory createFile(directory fs, char * command ) {
     strcpy(newFile.name, needle);
 
     probeDir.childs[ probeDir.nChilds ] = (void *) & newFile;
+    probeDir.nChilds++;
+
+    for(i = (dirIndex - 1); i >= 0; i--) {
+        dirLine[i] = probeDir;
+    }
+
+    return dirLine[0];
+}
+
+directory createDirectory(directory fs, char * command ) {
+    directory probeDir, dirLine[MAXHEIGHT];
+    directory newDir = *((directory *) malloc(sizeof(directory)));
+    char* needle;
+    int commandLength, length = 11, i, dirIndex = 0, childIndexes[MAXHEIGHT];
+
+    probeDir = fs;
+    dirLine[dirIndex] = fs;
+    dirIndex++;
+
+    commandLength = (strlen(command) - 1);
+    needle = getNeedle(command, length);
+    length += strlen(needle) + 1;
+
+    while(length != commandLength) {
+        for(i = 0; i < probeDir.nChilds; i++) {
+            probeDir = *((directory *) &probeDir.childs[i]);
+            if( 0 == strncmp(probeDir.name, needle, 0)) {
+                break;
+            }
+        }
+        needle = getNeedle(command, length);
+        length += strlen(needle) + 1;
+    }
+
+    strcpy(newDir.name, needle);
+
+    probeDir.childs[ probeDir.nChilds ] = (void *) & newDir;
     probeDir.nChilds++;
 
     for(i = (dirIndex - 1); i >= 0; i--) {
