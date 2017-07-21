@@ -21,6 +21,7 @@ typedef struct {
 
 int isAlphanumeric(char *);
 int getCommand(char *);
+char* substr(char *, int, int);
 char* getNeedle(char *, int);
 char* getText(char *);
 directory createFile(directory, char *);
@@ -45,6 +46,7 @@ int main() {
         fgets (command, INPUTMAX, stdin);
         if( 1 == isAlphanumeric(command) ) {
             nCommand = getCommand(command);
+            printf("%s\n", substr(command, 0, 10));
             switch (nCommand) {
                 case 1:
                     root = createDirectory(root, command);
@@ -67,7 +69,7 @@ int main() {
     return 0;
 }
 
-int isAlphanumeric( char * string ) {
+int isAlphanumeric(char * string) {
     int i;
     for (i = 0; i < INPUTMAX; i ++) {
         if (!(
@@ -88,7 +90,7 @@ int isAlphanumeric( char * string ) {
     return 1;
 }
 
-int getCommand( char * command ) {
+int getCommand(char * command) {
     if( 0 == strncmp(command, "create_dir", 10) ) return 1;
     if( 0 == strncmp(command, "create", 6) ) return 2;
     if( 0 == strncmp(command, "read", 4) ) return 3;
@@ -98,6 +100,20 @@ int getCommand( char * command ) {
     if( 0 == strncmp(command, "find", 4) ) return 7;
     if( 0 == strncmp(command, "exit", 4) ) return 8;
     return 0;
+}
+
+char* substr(char * string, int startIndex, int endIndex) {
+    char * newString;
+    int i,c = 0;
+
+    newString = (char *)malloc((endIndex - startIndex)*sizeof(char));
+
+    for(i = startIndex; i < endIndex; i ++) {
+        newString[c] = string[i];
+        c++;
+    }
+
+    return newString;
 }
 
 char* getNeedle(char * path, int startIndex) {
@@ -141,7 +157,7 @@ char* getText(char * path) {
     return text;
 }
 
-directory createFile(directory fs, char * command ) {
+directory createFile(directory fs, char * command) {
     directory probeDir, dirLine[MAXHEIGHT];
     file * newFile;
     char* needle;
@@ -182,7 +198,7 @@ directory createFile(directory fs, char * command ) {
 
 directory createDirectory(directory fs, char * command) {
     directory probeDir, dirLine[MAXHEIGHT];
-    directory newDir = *((directory *) malloc(sizeof(directory)));
+    directory * newDir = (directory *) malloc(sizeof(directory));
     char* needle;
     int commandLength, length = 11, i, dirIndex = 0, childIndexes[MAXHEIGHT];
 
@@ -205,9 +221,9 @@ directory createDirectory(directory fs, char * command) {
         length += strlen(needle) + 1;
     }
 
-    strcpy(newDir.name, needle);
+    strcpy(newDir->name, needle);
 
-    probeDir.childs[ probeDir.nChilds ] = (void *) & newDir;
+    probeDir.childs[ probeDir.nChilds ] = (void *) newDir;
     probeDir.nChilds++;
 
     for(i = (dirIndex - 1); i >= 0; i--) {
