@@ -55,10 +55,10 @@ int main() {
                     createFile(&root, substr(command, 7, strlen(command)-1));
                 break;
                 case 3:
-                    readFile(&root, command);
+                    readFile(&root, substr(command, 5, strlen(command)-1));
                 break;
                 case 4:
-                    writeFile(&root, command);
+                    writeFile(&root, substr(command, 6, strlen(command)-1));
                 break;
                 case 8: ex = 1;
             }
@@ -222,32 +222,18 @@ void * createDirectory(directory * fs, char * command) {
 }
 
 void * readFile(directory * fs, char * command) {
-    directory * probeDir;
-    file * f;
+    directory * last;
+    file * wFile;
     char* needle;
-    int commandLength, length = 5, i;
 
-    probeDir = fs;
+    last = (directory *) getLastElement(fs, substr(command, 0, strlen(command)));
 
-    commandLength = (strlen(command) - 1);
-    needle = getNeedle(substr(command, length, strlen(command)), 0);
-    length += strlen(needle) + 1;
+    needle = getNeedle(command, 1);
 
-    while(length != commandLength) {
-        for(i = 0; i < probeDir->nChilds; i++) {
-            probeDir = (directory *) &probeDir->childs[i];
-            if( 0 == strncmp(probeDir->name, needle, 0)) {
-                break;
-            }
-        }
-        needle = getNeedle(substr(command, length, strlen(command)), 0);
-        length += strlen(needle) + 1;
-    }
-
-    for(i = 0; i < probeDir->nChilds; i++) {
-        f = (file *) probeDir->childs[i];
-        if( 0 == strcmp(f->name, needle)) {
-            printf("%s\n", f->text);
+    for(int i = 0; i < last->nChilds; i++) {
+        wFile = (file *) last->childs[i];
+        if( 0 == strcmp(wFile->name, needle)) {
+            printf("%s\n", wFile->text);
             return NULL;
         }
     }
@@ -255,36 +241,19 @@ void * readFile(directory * fs, char * command) {
 }
 
 void * writeFile(directory * fs, char * command) {
-    directory * probeDir;
-    file * f;
-    char* needle;
-    char* text;
-    int commandLength, length = 6, i;
-
-    probeDir = fs;
+    directory * last;
+    file * wFile;
+    char* needle, * text;
 
     text = getText(command);
+    last = (directory *) getLastElement(fs, substr(command, 0, strlen(command) - strlen(text) - 4));
 
-    commandLength = (strlen(command) - strlen(text) - 4);
+    needle = getNeedle(command, 1);
 
-    needle = getNeedle(substr(command, length, strlen(command)), 0);
-    length += strlen(needle) + 1;
-
-    while(length != commandLength) {
-        for(i = 0; i < probeDir->nChilds; i++) {
-            probeDir = (directory *) &probeDir->childs[i];
-            if( 0 == strncmp(probeDir->name, needle, 0)) {
-                break;
-            }
-        }
-        needle = getNeedle(substr(command, length, strlen(command)), 0);
-        length += strlen(needle) + 1;
-    }
-
-    for(i = 0; i < probeDir->nChilds; i++) {
-        f = (file *) probeDir->childs[i];
-        if( 0 == strcmp(f->name, needle)) {
-            strcpy(f->text, text);
+    for(int i = 0; i < last->nChilds; i++) {
+        wFile = (file *) last->childs[i];
+        if( 0 == strcmp(wFile->name, needle)) {
+            strcpy(wFile->text, text);
             printf("si\n");
             return NULL;
         }
