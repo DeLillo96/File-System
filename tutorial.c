@@ -21,24 +21,25 @@ typedef struct {
 
 int isAlphanumeric(char *);
 int getCommand(char *);
-char* substr(char *, int, int);
-char* getNeedle(char *);
-char* getText(char *);
-directory * createFile(directory *, char *);
-directory * createDirectory(directory *, char *);
-void readFile(directory *, char *);
-void writeFile(directory *, char *);
+char * substr(char *, int, int);
+char * getNeedle(char *, int);
+char * getText(char *);
+void * getLastElement(directory *, char *);
+void * createFile(directory *, char *);
+void * createDirectory(directory *, char *);
+void * readFile(directory *, char *);
+void * writeFile(directory *, char *);
 
 int main() {
-    directory * root;
+    directory root;
     char command[INPUTMAX];
     char * path;
     int ex = 0, nCommand;
     while (ex == 0) {
         /***DEBUG*****/
         file * f;
-        for(int i=0; i<root->nChilds; i++) {
-            f = (file *) root->childs[i];
+        for(int i=0; i<root.nChilds; i++) {
+            f = (file *) root.childs[i];
             printf("%s | %s\n", f->name, f->text);
         }
         /*************/
@@ -48,16 +49,16 @@ int main() {
             nCommand = getCommand(command);
             switch (nCommand) {
                 case 1:
-                    root = createDirectory(root, command);
+                    createDirectory(&root, substr(command, 11, strlen(command)-1));
                 break;
                 case 2:
-                    root = createFile(root, command);
+                    createFile(&root, substr(command, 7, strlen(command)-1));
                 break;
                 case 3:
-                    readFile(root, command);
+                    readFile(&root, command);
                 break;
                 case 4:
-                    writeFile(root, command);
+                    writeFile(&root, command);
                 break;
                 case 8: ex = 1;
             }
@@ -115,14 +116,22 @@ char* substr(char * string, int startIndex, int endIndex) {
     return newString;
 }
 
-char* getNeedle(char * path) {
+char* getNeedle(char * path, int reverse) {
     char * needle;
-    int i, c = 0;
+    int i, c = 0, startIndex = 0;
 
     needle = (char *)malloc(MAXNAME*sizeof(char));
+    if(reverse == 1) {
+        for(i = strlen(path); i>0; i--){
+            if(path[i] == '/') {
+                startIndex = i;
+                break;
+            }
+        }
+    }
 
-    if( path[0] == '/' ) {
-        for (i = 1; i < MAXNAME; i ++) {
+    if( path[startIndex] == '/' ) {
+        for (i = startIndex+1; i < MAXNAME; i ++) {
             if(path[i] != '/' && path[i] != '\0' && path[i] != '\n' && path[i] != ' ') {
                 needle[c] = path[i];
                 c++;
@@ -155,83 +164,64 @@ char* getText(char * path) {
     return text;
 }
 
-directory* createFile(directory * fs, char * command) {
-    directory * probeDir, *dirLine[MAXHEIGHT];
-    file * newFile;
-    char* needle;
-    int commandLength, length = 7, i, dirIndex = 0, childIndexes[MAXHEIGHT];
+void* getLastElement(directory * fs, char * path) {
+    directory * probeDir;
+    char * needle;
+    int length , i;
 
-    newFile = (file *) malloc(sizeof(file));
-    probeDir = fs;
-    dirLine[dirIndex] = fs;
-    dirIndex++;
+    needle = getNeedle(path, 0);
+    length = strlen(needle) + 1;
 
-    commandLength = (strlen(command) - 1);
-    needle = getNeedle(substr(command, length, strlen(command)));
-    length += strlen(needle) + 1;
-
-    while(length != commandLength) {
-        for(i = 0; i < probeDir->nChilds; i++) {
-            probeDir = (directory *) &probeDir->childs[i];
+    if(length != strlen(path)) {
+        for(i = 0; i < fs->nChilds; i++) {
+            probeDir = (directory *) fs->childs[i];
             if( 0 == strcmp(probeDir->name, needle)) {
-                break;
+                return getLastElement(probeDir, substr(path, length, strlen(path)));
             }
         }
-        needle = getNeedle(substr(command, length, strlen(command)));
-        length += strlen(needle) + 1;
+    } else {
+        return (void *) fs;
     }
+}
 
+void * createFile(directory * fs, char * command) {
+    directory * last = (directory *) getLastElement(fs, command);
+    file * newFile;
+    char * needle;
+
+    needle = getNeedle(command, 1);
+    for(int i = 0; i < last->nChilds; i++) {
+        newFile = (file *) last->childs[i];
+        if( 0 == strcmp(newFile->name, needle)) {
+            return NULL;
+        }
+    }
+    newFile = (file *) malloc(sizeof(file));
     strcpy(newFile->name, needle);
     strcpy(newFile->text, " ");
-
-    probeDir->childs[ probeDir->nChilds ] = (void *) newFile;
-    probeDir->nChilds++;
-
-    for(i = (dirIndex - 1); i >= 0; i--) {
-        dirLine[i] = probeDir;
-    }
-
-    return dirLine[0];
+    last->childs[ last->nChilds ] = (void *) newFile;
+    last->nChilds++;
 }
 
-directory* createDirectory(directory * fs, char * command) {
-    directory * probeDir, * dirLine[MAXHEIGHT];
-    directory * newDir = (directory *) malloc(sizeof(directory));
-    char* needle;
-    int commandLength, length = 11, i, dirIndex = 0, childIndexes[MAXHEIGHT];
+void * createDirectory(directory * fs, char * command) {
+    directory * last = (directory *) getLastElement(fs, command);
+    directory * newDir;
+    char * needle;
 
-    probeDir = fs;
-    dirLine[dirIndex] = fs;
-    dirIndex++;
-
-    commandLength = (strlen(command) - 1);
-    needle = getNeedle(substr(command, length, strlen(command)));
-    length += strlen(needle) + 1;
-
-    while(length != commandLength) {
-        for(i = 0; i < probeDir->nChilds; i++) {
-            probeDir = (directory *) &probeDir->childs[i];
-            if( 0 == strcmp(probeDir->name, needle)) {
-                break;
-            }
+    needle = getNeedle(command, 1);
+    for(int i = 0; i < last->nChilds; i++) {
+        newDir = (directory *) last->childs[i];
+        if( 0 == strcmp(newDir->name, needle)) {
+            return NULL;
         }
-        needle = getNeedle(substr(command, length, strlen(command)));
-        length += strlen(needle) + 1;
     }
-
+    newDir = (directory *) malloc(sizeof(directory));
     strcpy(newDir->name, needle);
-
-    probeDir->childs[ probeDir->nChilds ] = (void *) newDir;
-    probeDir->nChilds++;
-
-    for(i = (dirIndex - 1); i >= 0; i--) {
-        dirLine[i] = probeDir;
-    }
-
-    return dirLine[0];
+    last->childs[ last->nChilds ] = (void *) newDir;
+    last->nChilds++;
 }
 
-void readFile(directory * fs, char * command) {
+void * readFile(directory * fs, char * command) {
     directory * probeDir;
     file * f;
     char* needle;
@@ -240,7 +230,7 @@ void readFile(directory * fs, char * command) {
     probeDir = fs;
 
     commandLength = (strlen(command) - 1);
-    needle = getNeedle(substr(command, length, strlen(command)));
+    needle = getNeedle(substr(command, length, strlen(command)), 0);
     length += strlen(needle) + 1;
 
     while(length != commandLength) {
@@ -250,7 +240,7 @@ void readFile(directory * fs, char * command) {
                 break;
             }
         }
-        needle = getNeedle(substr(command, length, strlen(command)));
+        needle = getNeedle(substr(command, length, strlen(command)), 0);
         length += strlen(needle) + 1;
     }
 
@@ -264,7 +254,7 @@ void readFile(directory * fs, char * command) {
     printf("no\n");
 }
 
-void writeFile(directory * fs, char * command) {
+void * writeFile(directory * fs, char * command) {
     directory * probeDir;
     file * f;
     char* needle;
@@ -277,7 +267,7 @@ void writeFile(directory * fs, char * command) {
 
     commandLength = (strlen(command) - strlen(text) - 4);
 
-    needle = getNeedle(substr(command, length, strlen(command)));
+    needle = getNeedle(substr(command, length, strlen(command)), 0);
     length += strlen(needle) + 1;
 
     while(length != commandLength) {
@@ -287,7 +277,7 @@ void writeFile(directory * fs, char * command) {
                 break;
             }
         }
-        needle = getNeedle(substr(command, length, strlen(command)));
+        needle = getNeedle(substr(command, length, strlen(command)), 0);
         length += strlen(needle) + 1;
     }
 
