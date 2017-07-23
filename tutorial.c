@@ -24,7 +24,7 @@ int getCommand(char *);
 char * substr(char *, int, int);
 char * getNeedle(char *, int);
 char * getText(char *);
-void * getLastElement(directory *, char *);
+directory * getLastElement(directory *, char *);
 void * createFile(directory *, char *);
 void * createDirectory(directory *, char *);
 void * readFile(directory *, char *);
@@ -231,9 +231,9 @@ void * readFile(directory * fs, char * command) {
 }
 
 void * writeFile(directory * fs, char * command) {
-    directory * last = getLastElement(fs, substr(command, 0, strlen(command) - strlen(text) - 4));
     file * wFile;
     char* needle, * text = getText(command);
+    directory * last = getLastElement(fs, substr(command, 0, strlen(command) - strlen(text) - 4));
 
     needle = getNeedle(command, 1);
 
@@ -246,4 +246,9 @@ void * writeFile(directory * fs, char * command) {
         }
     }
     printf("no\n");
+}
+
+void * delete_r(directory * fs, char * command) {
+    directory * last = getLastElement(fs, command);
+
 }
