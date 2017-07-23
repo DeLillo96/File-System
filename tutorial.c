@@ -24,21 +24,21 @@ int getCommand(char *);
 char* substr(char *, int, int);
 char* getNeedle(char *);
 char* getText(char *);
-directory createFile(directory, char *);
-directory createDirectory(directory, char *);
-void readFile(directory, char *);
-void writeFile(directory, char *);
+directory * createFile(directory *, char *);
+directory * createDirectory(directory *, char *);
+void readFile(directory *, char *);
+void writeFile(directory *, char *);
 
 int main() {
-    directory root;
+    directory * root;
     char command[INPUTMAX];
     char * path;
     int ex = 0, nCommand;
     while (ex == 0) {
         /***DEBUG*****/
         file * f;
-        for(int i=0; i<root.nChilds; i++) {
-            f = (file *) root.childs[i];
+        for(int i=0; i<root->nChilds; i++) {
+            f = (file *) root->childs[i];
             printf("%s | %s\n", f->name, f->text);
         }
         /*************/
@@ -155,8 +155,8 @@ char* getText(char * path) {
     return text;
 }
 
-directory createFile(directory fs, char * command) {
-    directory probeDir, dirLine[MAXHEIGHT];
+directory* createFile(directory * fs, char * command) {
+    directory * probeDir, *dirLine[MAXHEIGHT];
     file * newFile;
     char* needle;
     int commandLength, length = 7, i, dirIndex = 0, childIndexes[MAXHEIGHT];
@@ -171,9 +171,9 @@ directory createFile(directory fs, char * command) {
     length += strlen(needle) + 1;
 
     while(length != commandLength) {
-        for(i = 0; i < probeDir.nChilds; i++) {
-            probeDir = *((directory *) &probeDir.childs[i]);
-            if( 0 == strcmp(probeDir.name, needle)) {
+        for(i = 0; i < probeDir->nChilds; i++) {
+            probeDir = (directory *) &probeDir->childs[i];
+            if( 0 == strcmp(probeDir->name, needle)) {
                 break;
             }
         }
@@ -184,8 +184,8 @@ directory createFile(directory fs, char * command) {
     strcpy(newFile->name, needle);
     strcpy(newFile->text, " ");
 
-    probeDir.childs[ probeDir.nChilds ] = (void *) newFile;
-    probeDir.nChilds++;
+    probeDir->childs[ probeDir->nChilds ] = (void *) newFile;
+    probeDir->nChilds++;
 
     for(i = (dirIndex - 1); i >= 0; i--) {
         dirLine[i] = probeDir;
@@ -194,8 +194,8 @@ directory createFile(directory fs, char * command) {
     return dirLine[0];
 }
 
-directory createDirectory(directory fs, char * command) {
-    directory probeDir, dirLine[MAXHEIGHT];
+directory* createDirectory(directory * fs, char * command) {
+    directory * probeDir, * dirLine[MAXHEIGHT];
     directory * newDir = (directory *) malloc(sizeof(directory));
     char* needle;
     int commandLength, length = 11, i, dirIndex = 0, childIndexes[MAXHEIGHT];
@@ -209,9 +209,9 @@ directory createDirectory(directory fs, char * command) {
     length += strlen(needle) + 1;
 
     while(length != commandLength) {
-        for(i = 0; i < probeDir.nChilds; i++) {
-            probeDir = *((directory *) &probeDir.childs[i]);
-            if( 0 == strcmp(probeDir.name, needle)) {
+        for(i = 0; i < probeDir->nChilds; i++) {
+            probeDir = (directory *) &probeDir->childs[i];
+            if( 0 == strcmp(probeDir->name, needle)) {
                 break;
             }
         }
@@ -221,8 +221,8 @@ directory createDirectory(directory fs, char * command) {
 
     strcpy(newDir->name, needle);
 
-    probeDir.childs[ probeDir.nChilds ] = (void *) newDir;
-    probeDir.nChilds++;
+    probeDir->childs[ probeDir->nChilds ] = (void *) newDir;
+    probeDir->nChilds++;
 
     for(i = (dirIndex - 1); i >= 0; i--) {
         dirLine[i] = probeDir;
@@ -231,8 +231,8 @@ directory createDirectory(directory fs, char * command) {
     return dirLine[0];
 }
 
-void readFile(directory fs, char * command) {
-    directory probeDir;
+void readFile(directory * fs, char * command) {
+    directory * probeDir;
     file * f;
     char* needle;
     int commandLength, length = 5, i;
@@ -244,9 +244,9 @@ void readFile(directory fs, char * command) {
     length += strlen(needle) + 1;
 
     while(length != commandLength) {
-        for(i = 0; i < probeDir.nChilds; i++) {
-            probeDir = *((directory *) &probeDir.childs[i]);
-            if( 0 == strncmp(probeDir.name, needle, 0)) {
+        for(i = 0; i < probeDir->nChilds; i++) {
+            probeDir = (directory *) &probeDir->childs[i];
+            if( 0 == strncmp(probeDir->name, needle, 0)) {
                 break;
             }
         }
@@ -254,8 +254,8 @@ void readFile(directory fs, char * command) {
         length += strlen(needle) + 1;
     }
 
-    for(i = 0; i < probeDir.nChilds; i++) {
-        f = (file *) probeDir.childs[i];
+    for(i = 0; i < probeDir->nChilds; i++) {
+        f = (file *) probeDir->childs[i];
         if( 0 == strcmp(f->name, needle)) {
             printf("%s\n", f->text);
             return NULL;
@@ -264,8 +264,8 @@ void readFile(directory fs, char * command) {
     printf("no\n");
 }
 
-void writeFile(directory fs, char * command) {
-    directory probeDir;
+void writeFile(directory * fs, char * command) {
+    directory * probeDir;
     file * f;
     char* needle;
     char* text;
@@ -281,9 +281,9 @@ void writeFile(directory fs, char * command) {
     length += strlen(needle) + 1;
 
     while(length != commandLength) {
-        for(i = 0; i < probeDir.nChilds; i++) {
-            probeDir = *((directory *) &probeDir.childs[i]);
-            if( 0 == strncmp(probeDir.name, needle, 0)) {
+        for(i = 0; i < probeDir->nChilds; i++) {
+            probeDir = (directory *) &probeDir->childs[i];
+            if( 0 == strncmp(probeDir->name, needle, 0)) {
                 break;
             }
         }
@@ -291,8 +291,8 @@ void writeFile(directory fs, char * command) {
         length += strlen(needle) + 1;
     }
 
-    for(i = 0; i < probeDir.nChilds; i++) {
-        f = (file *) probeDir.childs[i];
+    for(i = 0; i < probeDir->nChilds; i++) {
+        f = (file *) probeDir->childs[i];
         if( 0 == strcmp(f->name, needle)) {
             strcpy(f->text, text);
             printf("si\n");
