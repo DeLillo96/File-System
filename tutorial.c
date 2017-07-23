@@ -23,12 +23,10 @@ char * substr(char *, int, int);
 char * getNeedle(char *, int);
 char * getText(char *);
 element * getLastElement(element *, char *);
-void * createFile(element *, char *);
-void * createDirectory(element *, char *);
+void * create(element *, char *, enum type_of_element);
 void * readFile(element *, char *);
 void * writeFile(element *, char *);
-void * delete_r(element *, char *);
-void * delete(element *, char *);
+void * delete(element *, char *, int);
 
 int main() {
     element root;
@@ -47,14 +45,20 @@ int main() {
         /*************/
         printf("$>");
         fgets (command, INPUTMAX, stdin);
-        if( 0 == strncmp(command, "create_dir", 10) ) createDirectory(&root, substr(command, 11, strlen(command)-1));
-        if( 0 == strncmp(command, "create", 6) ) createFile(&root, substr(command, 7, strlen(command)-1));
-        if( 0 == strncmp(command, "read", 4) ) readFile(&root, substr(command, 5, strlen(command)-1));
-        if( 0 == strncmp(command, "write", 5) ) writeFile(&root, substr(command, 6, strlen(command)-1));
-        if( 0 == strncmp(command, "delete_r", 8) ) writeFile(&root, substr(command, 6, strlen(command)-1));
-        if( 0 == strncmp(command, "delete", 6) ) delete_r(&root, substr(command, 9, strlen(command)-1));
-        if( 0 == strncmp(command, "find", 4) ) delete(&root, substr(command, 7, strlen(command)-1));
-        if( 0 == strncmp(command, "exit", 4) ) ex++;
+        if(0 == strcmp(substr(command, 0, 10), "create_dir")){
+            create(&root, substr(command, 11, strlen(command)-1), is_dir);
+        } else {
+            if(0 == strcmp(substr(command, 0, 6), "create")) create(&root, substr(command, 7, strlen(command)-1), is_file);
+        }
+        if(0 == strcmp(substr(command, 0, 4), "read")) readFile(&root, substr(command, 5, strlen(command)-1));
+        if(0 == strcmp(substr(command, 0, 5), "write")) writeFile(&root, substr(command, 6, strlen(command)-1));
+        if(0 == strcmp(substr(command, 0, 8), "delete_r")){
+            delete(&root, substr(command, 9, strlen(command)-1), 1);
+        } else {
+            if(0 == strcmp(substr(command, 0, 6), "delete")) delete(&root, substr(command, 7, strlen(command)-1), 0);
+        }
+        if(0 == strcmp(substr(command, 0, 4), "find")) {}
+        if(0 == strcmp(substr(command, 0, 4), "exit")) ex++;
     }
     return 0;
 }
@@ -150,7 +154,13 @@ element * getLastElement(element * fs, char * path) {
         for(i = 0; i < fs->nChilds; i++) {
             probeDir = (element *) fs->childs[i];
             if( 0 == strcmp(probeDir->name, needle)) {
-                return getLastElement(probeDir, substr(path, length, strlen(path)));
+                if(probeDir->type == is_dir){
+                    return getLastElement(probeDir, substr(path, length, strlen(path)));
+                }
+                else {
+                    printf("no\n");
+                    return NULL;
+                }
             }
         }
     } else {
@@ -158,45 +168,26 @@ element * getLastElement(element * fs, char * path) {
     }
 }
 
-void * createFile(element * fs, char * command) {
+void * create(element * fs, char * command, enum type_of_element el) {
     element * last = getLastElement(fs, command);
-    element * newFile;
+    element * new;
     char * needle;
 
     needle = getNeedle(command, 1);
     for(int i = 0; i < last->nChilds; i++) {
-        newFile = (element *) last->childs[i];
-        if(newFile->type == is_file) {
-            if( 0 == strcmp(newFile->name, needle)) {
+        new = (element *) last->childs[i];
+        if(new->type == el) {
+            if( 0 == strcmp(new->name, needle)) {
+                printf("no\n");
                 return NULL;
             }
         }
     }
-    newFile = (element *) malloc(sizeof(element));
-    newFile->type = is_file;
-    strcpy(newFile->name, needle);
-    strcpy(newFile->text, " ");
-    last->childs[ last->nChilds ] = (void *) newFile;
-    last->nChilds++;
-}
-
-void * createDirectory(element * fs, char * command) {
-    element * last = getLastElement(fs, command);
-    element * newDir;
-    char * needle = getNeedle(command, 1);
-
-    for(int i = 0; i < last->nChilds; i++) {
-        newDir = (element *) last->childs[i];
-        if(newDir->type = is_dir) {
-            if( 0 == strcmp(newDir->name, needle)) {
-                return NULL;
-            }
-        }
-    }
-    newDir = (element *) malloc(sizeof(element));
-    newDir->type = is_dir;
-    strcpy(newDir->name, needle);
-    last->childs[ last->nChilds ] = (void *) newDir;
+    new = (element *) malloc(sizeof(element));
+    new->type = el;
+    strcpy(new->name, needle);
+    strcpy(new->text, " ");
+    last->childs[ last->nChilds ] = (void *) new;
     last->nChilds++;
 }
 
@@ -237,12 +228,9 @@ void * writeFile(element * fs, char * command) {
     printf("no\n");
 }
 
-void * delete_r(element * fs, char * command) {
-    element * el, * last = fs;
-    char * needle;
-
-    last = getLastElement(fs, command);
-    needle = getNeedle(command, 1);
+void * delete(element * fs, char * command, int all) {
+    element * el, * last = getLastElement(fs, command);;
+    char * needle = getNeedle(command, 1);
 
     for(int i = 0; i < last->nChilds; i++) {
         el = (element *) last->childs[i];
@@ -251,28 +239,10 @@ void * delete_r(element * fs, char * command) {
         }
         if(0 == strcmp(el->name, needle)) {
             if(el->type == is_dir) {
+                if(el->nChilds > 0 && all == 0) return NULL;
                 for(int j = 0; j < el->nChilds; j++) {
-                    delete_r((element *)el->childs[j], "/*");
+                    delete((element *)el->childs[j], "/*", 1);
                 }
-            }
-            last->nChilds--;
-            if(i != last->nChilds) {
-                last->childs[i] = last->childs[last->nChilds];
-            }
-            free(el);
-        }
-    }
-}
-
-void * delete(element * fs, char * command) {
-    element * el, * last = getLastElement(fs, command);;
-    char * needle = getNeedle(command, 1);
-
-    for(int i = 0; i < last->nChilds; i++) {
-        el = (element *) last->childs[i];
-        if(0 == strcmp(el->name, needle)) {
-            if(el->type == is_dir) {
-                if(el->nChilds > 0) return NULL;
             }
             last->nChilds--;
             if(i != last->nChilds) {
