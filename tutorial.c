@@ -201,9 +201,8 @@ void * createFile(directory * fs, char * command) {
 void * createDirectory(directory * fs, char * command) {
     directory * last = getLastElement(fs, command);
     directory * newDir;
-    char * needle;
+    char * needle = getNeedle(command, 1);
 
-    needle = getNeedle(command, 1);
     for(int i = 0; i < last->nChilds; i++) {
         newDir = (directory *) last->childs[i];
         if( 0 == strcmp(newDir->name, needle)) {
@@ -217,13 +216,9 @@ void * createDirectory(directory * fs, char * command) {
 }
 
 void * readFile(directory * fs, char * command) {
-    directory * last;
+    directory * last = getLastElement(fs, substr(command, 0, strlen(command)));
     file * wFile;
-    char* needle;
-
-    last = getLastElement(fs, substr(command, 0, strlen(command)));
-
-    needle = getNeedle(command, 1);
+    char* needle  = getNeedle(command, 1);
 
     for(int i = 0; i < last->nChilds; i++) {
         wFile = (file *) last->childs[i];
@@ -251,9 +246,4 @@ void * writeFile(directory * fs, char * command) {
         }
     }
     printf("no\n");
-}
-
-void * delete_r(directory * fs, char * command) {
-    directory * last = getLastElement(fs, command);
-
 }
