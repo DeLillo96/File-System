@@ -19,7 +19,6 @@ typedef struct {
 } element;
 
 int isAlphanumeric(char *);
-int getCommand(char *);
 char * substr(char *, int, int);
 char * getNeedle(char *, int);
 char * getText(char *);
@@ -29,6 +28,7 @@ void * createDirectory(element *, char *);
 void * readFile(element *, char *);
 void * writeFile(element *, char *);
 void * delete_r(element *, char *);
+void * delete(element *, char *);
 
 int main() {
     element root;
@@ -47,29 +47,14 @@ int main() {
         /*************/
         printf("$>");
         fgets (command, INPUTMAX, stdin);
-        if( 1 == isAlphanumeric(command) ) {
-            nCommand = getCommand(command);
-            switch (nCommand) {
-                case 1:
-                    createDirectory(&root, substr(command, 11, strlen(command)-1));
-                break;
-                case 2:
-                    createFile(&root, substr(command, 7, strlen(command)-1));
-                break;
-                case 3:
-                    readFile(&root, substr(command, 5, strlen(command)-1));
-                break;
-                case 4:
-                    writeFile(&root, substr(command, 6, strlen(command)-1));
-                break;
-                case 5:
-                    delete_r(&root, substr(command, 9, strlen(command)-1));
-                break;
-                case 8: ex = 1;
-            }
-        } else {
-            printf("no\n");
-        }
+        if( 0 == strncmp(command, "create_dir", 10) ) createDirectory(&root, substr(command, 11, strlen(command)-1));
+        if( 0 == strncmp(command, "create", 6) ) createFile(&root, substr(command, 7, strlen(command)-1));
+        if( 0 == strncmp(command, "read", 4) ) readFile(&root, substr(command, 5, strlen(command)-1));
+        if( 0 == strncmp(command, "write", 5) ) writeFile(&root, substr(command, 6, strlen(command)-1));
+        if( 0 == strncmp(command, "delete_r", 8) ) writeFile(&root, substr(command, 6, strlen(command)-1));
+        if( 0 == strncmp(command, "delete", 6) ) delete_r(&root, substr(command, 9, strlen(command)-1));
+        if( 0 == strncmp(command, "find", 4) ) delete(&root, substr(command, 7, strlen(command)-1));
+        if( 0 == strncmp(command, "exit", 4) ) ex++;
     }
     return 0;
 }
@@ -80,11 +65,7 @@ int isAlphanumeric(char * string) {
         if (!(
             (string[i] >= 'A' && string[i] <= 'Z') ||
             (string[i] >= 'a' && string[i] <= 'z') ||
-            (string[i] >= '0' && string[i] <= '9') ||
-            string[i] == '_' ||
-            string[i] == '/' ||
-            string[i] == '"' ||
-            string[i] == ' '
+            (string[i] >= '0' && string[i] <= '9')
         )) {
             if(string[i] == '\0' || string[i] == '\n')
                 return 1;
@@ -93,18 +74,6 @@ int isAlphanumeric(char * string) {
          }
     }
     return 1;
-}
-
-int getCommand(char * command) {
-    if( 0 == strncmp(command, "create_dir", 10) ) return 1;
-    if( 0 == strncmp(command, "create", 6) ) return 2;
-    if( 0 == strncmp(command, "read", 4) ) return 3;
-    if( 0 == strncmp(command, "write", 5) ) return 4;
-    if( 0 == strncmp(command, "delete_r", 8) ) return 5;
-    if( 0 == strncmp(command, "delete", 6) ) return 6;
-    if( 0 == strncmp(command, "find", 4) ) return 7;
-    if( 0 == strncmp(command, "exit", 4) ) return 8;
-    return 0;
 }
 
 char* substr(char * string, int startIndex, int endIndex) {
@@ -283,8 +252,27 @@ void * delete_r(element * fs, char * command) {
         if(0 == strcmp(el->name, needle)) {
             if(el->type == is_dir) {
                 for(int j = 0; j < el->nChilds; j++) {
-                    delete_r((element *)el->childs[j], "/*"); //fix needle error
+                    delete_r((element *)el->childs[j], "/*");
                 }
+            }
+            last->nChilds--;
+            if(i != last->nChilds) {
+                last->childs[i] = last->childs[last->nChilds];
+            }
+            free(el);
+        }
+    }
+}
+
+void * delete(element * fs, char * command) {
+    element * el, * last = getLastElement(fs, command);;
+    char * needle = getNeedle(command, 1);
+
+    for(int i = 0; i < last->nChilds; i++) {
+        el = (element *) last->childs[i];
+        if(0 == strcmp(el->name, needle)) {
+            if(el->type == is_dir) {
+                if(el->nChilds > 0) return NULL;
             }
             last->nChilds--;
             if(i != last->nChilds) {
