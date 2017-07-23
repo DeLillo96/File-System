@@ -36,7 +36,15 @@ int main() {
     char * path;
     int ex = 0, nCommand;
     root.type = is_dir;
+    strcpy(root.name, "root");
     while (ex == 0) {
+        /***DEBUG*****/
+        element * f;
+        for(int i=0; i<root.nChilds; i++) {
+            f = (element *) root.childs[i];
+            printf("%s\n", f->name);
+        }
+        /*************/
         printf("$>");
         fgets (command, INPUTMAX, stdin);
         if( 1 == isAlphanumeric(command) ) {
@@ -55,7 +63,7 @@ int main() {
                     writeFile(&root, substr(command, 6, strlen(command)-1));
                 break;
                 case 5:
-                    delete_r(&root, substr(command, 7, strlen(command)-1));
+                    delete_r(&root, substr(command, 9, strlen(command)-1));
                 break;
                 case 8: ex = 1;
             }
@@ -261,14 +269,28 @@ void * writeFile(element * fs, char * command) {
 }
 
 void * delete_r(element * fs, char * command) {
-    element * last = getLastElement(fs, command);
-    char * needle = getNeedle(command, 1);
-    element * el;
+    element * el, * last = fs;
+    char * needle;
+
+    last = getLastElement(fs, command);
+    needle = getNeedle(command, 1);
 
     for(int i = 0; i < last->nChilds; i++) {
         el = (element *) last->childs[i];
-        if(el->type = is_dir) {
-
+        if(0 == strcmp(command, "/*")) {
+            needle = el->name;
+        }
+        if(0 == strcmp(el->name, needle)) {
+            if(el->type == is_dir) {
+                for(int j = 0; j < el->nChilds; j++) {
+                    delete_r((element *)el->childs[j], "/*"); //fix needle error
+                }
+            }
+            last->nChilds--;
+            if(i != last->nChilds) {
+                last->childs[i] = last->childs[last->nChilds];
+            }
+            free(el);
         }
     }
 }
