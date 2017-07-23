@@ -36,13 +36,6 @@ int main() {
     char * path;
     int ex = 0, nCommand;
     while (ex == 0) {
-        /***DEBUG*****/
-        file * f;
-        for(int i=0; i<root.nChilds; i++) {
-            f = (file *) root.childs[i];
-            printf("%s | %s\n", f->name, f->text);
-        }
-        /*************/
         printf("$>");
         fgets (command, INPUTMAX, stdin);
         if( 1 == isAlphanumeric(command) ) {
@@ -59,6 +52,8 @@ int main() {
                 break;
                 case 4:
                     writeFile(&root, substr(command, 6, strlen(command)-1));
+                break;
+                case 5:
                 break;
                 case 8: ex = 1;
             }
@@ -164,7 +159,7 @@ char* getText(char * path) {
     return text;
 }
 
-void* getLastElement(directory * fs, char * path) {
+directory * getLastElement(directory * fs, char * path) {
     directory * probeDir;
     char * needle;
     int length , i;
@@ -185,7 +180,7 @@ void* getLastElement(directory * fs, char * path) {
 }
 
 void * createFile(directory * fs, char * command) {
-    directory * last = (directory *) getLastElement(fs, command);
+    directory * last = getLastElement(fs, command);
     file * newFile;
     char * needle;
 
@@ -204,7 +199,7 @@ void * createFile(directory * fs, char * command) {
 }
 
 void * createDirectory(directory * fs, char * command) {
-    directory * last = (directory *) getLastElement(fs, command);
+    directory * last = getLastElement(fs, command);
     directory * newDir;
     char * needle;
 
@@ -226,7 +221,7 @@ void * readFile(directory * fs, char * command) {
     file * wFile;
     char* needle;
 
-    last = (directory *) getLastElement(fs, substr(command, 0, strlen(command)));
+    last = getLastElement(fs, substr(command, 0, strlen(command)));
 
     needle = getNeedle(command, 1);
 
@@ -241,12 +236,9 @@ void * readFile(directory * fs, char * command) {
 }
 
 void * writeFile(directory * fs, char * command) {
-    directory * last;
+    directory * last = getLastElement(fs, substr(command, 0, strlen(command) - strlen(text) - 4));
     file * wFile;
-    char* needle, * text;
-
-    text = getText(command);
-    last = (directory *) getLastElement(fs, substr(command, 0, strlen(command) - strlen(text) - 4));
+    char* needle, * text = getText(command);
 
     needle = getNeedle(command, 1);
 
@@ -259,4 +251,9 @@ void * writeFile(directory * fs, char * command) {
         }
     }
     printf("no\n");
+}
+
+void * delete_r(directory * fs, char * command) {
+    directory * last = getLastElement(fs, command);
+
 }
