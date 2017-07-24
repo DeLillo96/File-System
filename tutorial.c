@@ -83,8 +83,9 @@ char * substr(char * string, int startIndex, int endIndex) {
 
     newString = (char *)malloc((endIndex - startIndex)*sizeof(char));
 
+    printf("%c | %c\n", string[startIndex], string[startIndex+1]);
     for(i = startIndex; i < endIndex; i ++) {
-        if(newString[c] != ' ') {
+        if(string[i] != ' ') {
             newString[c] = string[i];
             c++;
         }
@@ -173,6 +174,7 @@ void * create(element * fs, char * command, enum type_of_element el) {
         printf("no\n");
         return NULL;
     }
+
 needle = getNeedle(command, 1);
     for(int i = 0; i < last->nChilds; i++) {
         new = (element *) last->childs[i];
