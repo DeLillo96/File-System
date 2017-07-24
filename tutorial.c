@@ -38,14 +38,6 @@ int main() {
     root.type = is_dir;
     strcpy(root.name, "root");
     while (ex == 0) {
-        /***DEBUG*****
-        element * f;
-        for(int i=0; i<root.nChilds; i++) {
-            f = (element *) root.childs[i];
-            printf("%s\n", f->name);
-        }
-        /*************/
-        printf("$>");
         fgets (command, INPUTMAX, stdin);
         if(0 == strcmp(substr(command, 0, 10), "create_dir")){
             create(&root, substr(command, 11, strlen(command)-1), is_dir);
@@ -60,7 +52,10 @@ int main() {
             if(0 == strcmp(substr(command, 0, 6), "delete")) delete(&root, substr(command, 7, strlen(command)-1), 0);
         }
         if(0 == strcmp(substr(command, 0, 4), "find")) search(root, substr(command, 5, strlen(command)-1));
-        if(0 == strcmp(substr(command, 0, 4), "exit")) ex++;
+        if(0 == strcmp(substr(command, 0, 4), "exit")) {
+            printf("ok\n");
+            ex++;
+        }
     }
     return 0;
 }
@@ -191,6 +186,7 @@ void * create(element * fs, char * command, enum type_of_element el) {
     strcpy(new->text, " ");
     last->childs[ last->nChilds ] = (void *) new;
     last->nChilds++;
+    printf("ok\n");
 }
 
 void * readFile(element * fs, char * command) {
@@ -202,7 +198,7 @@ void * readFile(element * fs, char * command) {
         file = (element *) last->childs[i];
         if(file->type == is_file) {
             if(0 == strcmp(file->name, needle)) {
-                printf("%s\n", file->text);
+                printf("contenuto %s\n", file->text);
                 return NULL;
             }
         }
@@ -222,7 +218,7 @@ void * writeFile(element * fs, char * command) {
         if(file->type == is_file){
             if( 0 == strcmp(file->name, needle)) {
                 strcpy(file->text, text);
-                printf("si\n");
+                printf("ok %d\n", strlen(text));
                 return NULL;
             }
         }
@@ -286,7 +282,7 @@ void * search(element fs, char * name) {
                 stringProbe = support[i];
             }
         }
-        printf("%s\n", support[i]);
+        printf("ok %s\n", support[i]);
     }
 }
 
