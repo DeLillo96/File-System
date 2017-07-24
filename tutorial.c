@@ -38,7 +38,7 @@ int main() {
     root.type = is_dir;
     strcpy(root.name, "root");
     while (ex == 0) {
-        fgets (command, INPUTMAX, stdin);
+        if(NULL == fgets(command, INPUTMAX, stdin))continue;
         if(0 == strcmp(substr(command, 0, 10), "create_dir")){
             create(&root, substr(command, 11, strlen(command)-1), is_dir);
         } else {
@@ -84,8 +84,10 @@ char * substr(char * string, int startIndex, int endIndex) {
     newString = (char *)malloc((endIndex - startIndex)*sizeof(char));
 
     for(i = startIndex; i < endIndex; i ++) {
-        newString[c] = string[i];
-        c++;
+        if(newString[c] != ' ') {
+            newString[c] = string[i];
+            c++;
+        }
     }
 
     return newString;
@@ -120,9 +122,9 @@ char * getText(char * path) {
     char * text;
     int i, c = 0, startRecord = 0;
 
-    text = (char *)malloc(20*sizeof(char));
+    text = (char *)malloc(MAXFILE*sizeof(char));
 
-    for (i = 0; i < 20; i ++) {
+    for (i = 0; i < MAXFILE; i ++) {
         if(path[i] == '"') {
             if(startRecord == 1){
                 break;
@@ -147,22 +149,19 @@ element * getLastElement(element * fs, char * path) {
     needle = getNeedle(path, 0);
     length = strlen(needle) + 1;
 
-    if(length != strlen(path)) {
+    if(length != strlen(path) && fs->type == is_dir) {
         for(i = 0; i < fs->nChilds; i++) {
             probeDir = (element *) fs->childs[i];
             if( 0 == strcmp(probeDir->name, needle)) {
                 if(probeDir->type == is_dir){
                     return getLastElement(probeDir, substr(path, length, strlen(path)));
                 }
-                else {
-                    printf("no\n");
-                    return NULL;
-                }
             }
         }
     } else {
-        return fs;
+        if(length == strlen(path)) return fs;
     }
+    return NULL;
 }
 
 void * create(element * fs, char * command, enum type_of_element el) {
@@ -170,7 +169,11 @@ void * create(element * fs, char * command, enum type_of_element el) {
     element * new;
     char * needle;
 
-    needle = getNeedle(command, 1);
+    if(last == NULL) {
+        printf("no\n");
+        return NULL;
+    }
+needle = getNeedle(command, 1);
     for(int i = 0; i < last->nChilds; i++) {
         new = (element *) last->childs[i];
         if(new->type == el) {
@@ -194,6 +197,10 @@ void * readFile(element * fs, char * command) {
     element * file;
     char* needle  = getNeedle(command, 1);
 
+    if(last == NULL) {
+        printf("no\n");
+        return NULL;
+    }
     for(int i = 0; i < last->nChilds; i++) {
         file = (element *) last->childs[i];
         if(file->type == is_file) {
@@ -211,6 +218,10 @@ void * writeFile(element * fs, char * command) {
     char * needle, * text = getText(command);
     element * last = getLastElement(fs, substr(command, 0, strlen(command) - strlen(text) - 4));
 
+    if(last == NULL) {
+        printf("no\n");
+        return NULL;
+    }
     needle = getNeedle(command, 1);
 
     for(int i = 0; i < last->nChilds; i++) {
@@ -218,7 +229,7 @@ void * writeFile(element * fs, char * command) {
         if(file->type == is_file){
             if( 0 == strcmp(file->name, needle)) {
                 strcpy(file->text, text);
-                printf("ok %d\n", strlen(text));
+                printf("ok %d\n", (int)strlen(text));
                 return NULL;
             }
         }
@@ -227,9 +238,13 @@ void * writeFile(element * fs, char * command) {
 }
 
 void * delete(element * fs, char * command, int all) {
-    element * el, * last = getLastElement(fs, command);;
+    element * el, * last = getLastElement(fs, command);
     char * needle = getNeedle(command, 1);
 
+    if(last == NULL) {
+        printf("no\n");
+        return NULL;
+    }
     for(int i = 0; i < last->nChilds; i++) {
         el = (element *) last->childs[i];
         if(0 == strcmp(command, "/*")) {
@@ -259,9 +274,11 @@ void * search(element fs, char * name) {
     while (ex == 0) {
         paths[pathIndex] = getPathInLeftTree(fs);
         probe = getLastElement(&fs, paths[pathIndex]);
-        pathIndex++;
-        probe->nChilds--;
-        if(0 == strcmp(probe->name, "root") && 0 == probe->nChilds) ex++;
+        if(probe != NULL) {
+            pathIndex++;
+            probe->nChilds--;
+            if(0 == strcmp(probe->name, "root") && 0 == probe->nChilds) ex++;
+        }
     }
     for(int i = 0; i < pathIndex; i++) {
         if(0 == strcmp(name, substr(paths[i], strlen(paths[i]) - strlen(name), strlen(paths[i])))) {
