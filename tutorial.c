@@ -4,7 +4,7 @@
 
 #define INPUTMAX 65036
 #define MAXNAME 255
-#define MAXFILE 8192
+#define MAXFILE 4096
 #define MAXCHILDS 1024
 #define MAXHEIGHT 255
 
@@ -27,6 +27,8 @@ void * create(element *, char *, enum type_of_element);
 void * readFile(element *, char *);
 void * writeFile(element *, char *);
 void * delete(element *, char *, int);
+void * search(element, char *);
+char * getPathInLeftTree(element);
 
 int main() {
     element root;
@@ -36,7 +38,7 @@ int main() {
     root.type = is_dir;
     strcpy(root.name, "root");
     while (ex == 0) {
-        /***DEBUG*****/
+        /***DEBUG*****
         element * f;
         for(int i=0; i<root.nChilds; i++) {
             f = (element *) root.childs[i];
@@ -57,7 +59,7 @@ int main() {
         } else {
             if(0 == strcmp(substr(command, 0, 6), "delete")) delete(&root, substr(command, 7, strlen(command)-1), 0);
         }
-        if(0 == strcmp(substr(command, 0, 4), "find")) {}
+        if(0 == strcmp(substr(command, 0, 4), "find")) search(root, substr(command, 5, strlen(command)-1));
         if(0 == strcmp(substr(command, 0, 4), "exit")) ex++;
     }
     return 0;
@@ -80,7 +82,7 @@ int isAlphanumeric(char * string) {
     return 1;
 }
 
-char* substr(char * string, int startIndex, int endIndex) {
+char * substr(char * string, int startIndex, int endIndex) {
     char * newString;
     int i,c = 0;
 
@@ -94,7 +96,7 @@ char* substr(char * string, int startIndex, int endIndex) {
     return newString;
 }
 
-char* getNeedle(char * path, int reverse) {
+char * getNeedle(char * path, int reverse) {
     char * needle;
     int i, c = 0, startIndex = 0;
 
@@ -119,7 +121,7 @@ char* getNeedle(char * path, int reverse) {
     return needle;
 }
 
-char* getText(char * path) {
+char * getText(char * path) {
     char * text;
     int i, c = 0, startRecord = 0;
 
@@ -251,4 +253,52 @@ void * delete(element * fs, char * command, int all) {
             free(el);
         }
     }
+}
+
+void * search(element fs, char * name) {
+    element * probe;
+    int pathIndex = 0, ex = 0, supportIndex = 0;
+    char * paths[MAXHEIGHT*MAXNAME + MAXHEIGHT],  * support[MAXHEIGHT*MAXNAME + MAXHEIGHT], * stringProbe;
+
+    while (ex == 0) {
+        paths[pathIndex] = getPathInLeftTree(fs);
+        probe = getLastElement(&fs, paths[pathIndex]);
+        pathIndex++;
+        probe->nChilds--;
+        if(0 == strcmp(probe->name, "root") && 0 == probe->nChilds) ex++;
+    }
+    for(int i = 0; i < pathIndex; i++) {
+        if(0 == strcmp(name, substr(paths[i], strlen(paths[i]) - strlen(name), strlen(paths[i])))) {
+            support[supportIndex] = paths[i];
+            supportIndex++;
+        }
+    }
+    if(supportIndex == 0) {
+        printf("no\n");
+        return NULL;
+    }
+    for(int i = 0; i < supportIndex; i++) {
+        stringProbe = support[i];
+        for(int j = (i + 1); j < supportIndex; j++) {
+            if(1 == strcmp(stringProbe, support[j])) {
+                support[i] = support[j];
+                support[j] = stringProbe;
+                stringProbe = support[i];
+            }
+        }
+        printf("%s\n", support[i]);
+    }
+}
+
+char * getPathInLeftTree(element fs) {
+    char * path = (char *)malloc((MAXHEIGHT*MAXNAME + MAXHEIGHT)*sizeof(char));
+    element el = *((element *) fs.childs[(fs.nChilds - 1)]);
+    strcat(path, "/");
+    strcat(path, el.name);
+    if(el.type == is_dir) {
+        if(el.nChilds > 0) {
+            strcat(path, getPathInLeftTree(el));
+        }
+    }
+    return path;
 }
