@@ -29,8 +29,10 @@
 *.dylib
 
 # Executables
+*.sh
 *.exe
 *.out
+*.in
 *.app
 *.i*86
 *.x86_64
