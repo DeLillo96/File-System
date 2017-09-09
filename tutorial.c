@@ -147,7 +147,7 @@ element * getLastElement(element * fs, char * path) {
 
 void * create(element * fs, char * command, enum type_of_element el) {
     element * last = getLastElement(fs, command);
-    element * new;
+    element * new, * elem;
     char * needle;
 
     if(last == NULL) {
@@ -157,9 +157,9 @@ void * create(element * fs, char * command, enum type_of_element el) {
 
     needle = getNeedle(command, 1);
     for(int i = 0; i < last->nChilds; i++) {
-        new = (element *) last->childs[i];
-        if(new->type == el) {
-            if( 0 == strcmp(new->name, needle)) {
+        elem = (element *) last->childs[i];
+        if(elem->type == el) {
+            if(0 == strcmp(elem->name, needle)) {
                 printf("no\n");
                 return NULL;
             }
@@ -172,6 +172,17 @@ void * create(element * fs, char * command, enum type_of_element el) {
     strcpy(new->text, "\0");
     last->childs[ last->nChilds ] = (void *) new;
     last->nChilds++;
+    for(int i = 0; i < last->nChilds; i++){
+        elem = (element *) last->childs[i];
+        for(int j = (i + 1); j < last->nChilds; j++) {
+            new = (element *) last->childs[j];
+            if(strcmp(elem->name, new->name) > 0) {
+                last->childs[i] = last->childs[j];
+                last->childs[j] = (void *) elem;
+                elem = (element *) last->childs[i];
+            }
+        }
+    }
     printf("ok\n");
 }
 
@@ -296,7 +307,7 @@ void * search(element * fs, char * name) {
     for(i = 0; i < supportIndex; i++) {
         stringProbe = support[i];
         for(int j = (i + 1); j < supportIndex; j++) {
-            if(1 != strcmp(stringProbe, support[j])) {
+            if(strcmp(stringProbe, support[j]) > 0) {
                 support[i] = support[j];
                 support[j] = stringProbe;
                 stringProbe = support[i];
