@@ -28,8 +28,7 @@ void * create(element *, char *, enum type_of_element);
 void * readFile(element *, char *);
 void * writeFile(element *, char *);
 void * delete(element *, char *, int);
-void * search(element *, char *);
-char * getPathInLeftTree(element *);
+int search(element *, char *, char *);
 
 enum type_of_element probeColor = white;
 
@@ -54,7 +53,9 @@ int main() {
         } else {
             if(0 == strcmp(substr(command, 0, 6), "delete")) delete(&root, substr(command, 6, strlen(command)), 0);
         }
-        if(0 == strcmp(substr(command, 0, 4), "find")) search(&root, substr(command, 4, strlen(command)));
+        if(0 == strcmp(substr(command, 0, 4), "find")) {
+            if(0 == search(&root, "", substr(command, 4, strlen(command)))) printf("no\n");
+        }
         if(0 == strcmp(substr(command, 0, 4), "exit")) ex++;
     }
     return 0;
@@ -270,76 +271,23 @@ void * delete(element * fs, char * command, int all) {
     }
 }
 
-void * search(element * fs, char * name) {
-    element * probe;
-    int pathIndex = 0, ex = 0, supportIndex = 0, i;
-    char * paths[MAXHEIGHT*MAXNAME + MAXHEIGHT], * support[MAXHEIGHT*MAXNAME + MAXHEIGHT], * stringProbe;
-
-    while (ex == 0) {
-        paths[pathIndex] = getPathInLeftTree(fs);
-        if(paths[pathIndex] != NULL) {
-            probe = getLastElement(fs, paths[pathIndex]);
-        } else {
-            printf("no\n");
-            return NULL;
-        }
-        if(probe != NULL) {
-            pathIndex ++;
-            if(0 == strcmp(probe->name, "root") && probe->color != probeColor) {
-                ex++;
-                probeColor = !probeColor;
-            }
-        } else {
-            printf("no\n");
-            return NULL;
-        }
-    }
-    for(i = 0; i < pathIndex; i++) {
-        if(0 == strcmp(name, substr(paths[i], strlen(paths[i]) - strlen(name), strlen(paths[i])))) {
-            support[supportIndex] = paths[i];
-            supportIndex++;
-        }
-    }
-    if(supportIndex == 0) {
-        printf("no\n");
-        return NULL;
-    }
-    for(i = 0; i < supportIndex; i++) {
-        stringProbe = support[i];
-        for(int j = (i + 1); j < supportIndex; j++) {
-            if(strcmp(stringProbe, support[j]) > 0) {
-                support[i] = support[j];
-                support[j] = stringProbe;
-                stringProbe = support[i];
-            }
-        }
-        printf("ok %s\n", support[i]);
-    }
-}
-
-char * getPathInLeftTree(element * fs) {
-    char * path = (char *)malloc((MAXHEIGHT*MAXNAME + MAXHEIGHT)*sizeof(char)), * needle;
+int search(element * fs, char * path, char * name) {
+    char * newPath = (char *)malloc((MAXHEIGHT*MAXNAME + MAXHEIGHT)*sizeof(char));
     element * el;
     int i, finishedFlag = 0;
 
-    if(fs->color != probeColor) {
-        return NULL;
-    }
     for (i = 0; i < fs->nChilds; i++) {
+        strcpy(newPath, path);
         el = (element *) fs->childs[i];
-        if(el->color == probeColor) {
-            strcat(path, "/");
-            strcat(path, el->name);
-            if(el->type == dir && el->nChilds > 0) {
-                needle = getPathInLeftTree(el);
-                strcat(path, needle);
-            } else {
-                el->color = !probeColor;
-            }
-            return path;
+        strcat(newPath, "/");
+        strcat(newPath, el->name);
+        if(0 == strcmp(name, el->name)){
+            printf("si %s\n", newPath);
+            if(finishedFlag == 0) finishedFlag++;
+        }
+        if(el->type == dir && el->nChilds > 0) {
+            if(0 != search(el, newPath, name) && finishedFlag == 0) finishedFlag++;
         }
     }
-    strcat(path, "\0");
-    fs->color = !probeColor;
-    return path;
+    return finishedFlag;
 }
