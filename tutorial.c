@@ -9,11 +9,9 @@
 #define MAXHEIGHT 255
 
 enum type_of_element {dir = 0, file = 1};
-enum color_of_element {white = 0, black = 1};
 
 typedef struct {
     enum type_of_element type;
-    enum type_of_element color;
     char name[MAXNAME];
     void *childs[MAXCHILDS];
     int nChilds;
@@ -30,14 +28,11 @@ void * writeFile(element *, char *);
 void * delete(element *, char *, int);
 int search(element *, char *, char *);
 
-enum type_of_element probeColor = white;
-
 int main() {
     element root;
     char command[INPUTMAX], * testStr;
     int ex = 0;
     root.type = dir;
-    root.color = probeColor;
     strcpy(root.name, "root");
     while (ex == 0) {
         if(NULL == fgets(command, INPUTMAX, stdin))continue;
@@ -168,7 +163,6 @@ void * create(element * fs, char * command, enum type_of_element el) {
     }
     new = (element *) malloc(sizeof(element));
     new->type = el;
-    new->color = probeColor;
     strcpy(new->name, needle);
     strcpy(new->text, "\0");
     last->childs[ last->nChilds ] = (void *) new;
