@@ -197,7 +197,7 @@ void * readFile(element * fs, char * command) {
                 if(0 != strcmp("\0", el->text)){
                     printf("contenuto %s\n", el->text);
                 } else {
-                    printf("contenuto \n");
+                    printf("contenuto\n");
                 }
                 return NULL;
             }
@@ -276,7 +276,7 @@ int search(element * fs, char * path, char * name) {
         strcat(newPath, "/");
         strcat(newPath, el->name);
         if(0 == strcmp(name, el->name)){
-            printf("si %s\n", newPath);
+            printf("ok %s\n", newPath);
             if(finishedFlag == 0) finishedFlag++;
         }
         if(el->type == dir && el->nChilds > 0) {
