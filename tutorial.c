@@ -18,6 +18,12 @@ typedef struct {
     char text[MAXFILE];
 } element;
 
+typedef struct {
+	char *texts;
+    void *next;
+    void *prev;
+} searchList;
+
 char * substr(char *, int, int);
 char * getNeedle(char *, int);
 char * getText(char *);
@@ -28,10 +34,13 @@ void * writeFile(element *, char *);
 void * delete(element *, char *, int);
 int search(element *, char *, char *);
 
+searchList *searchPaths, *probeList;
+
 int main() {
     element root;
-    char command[INPUTMAX], * testStr;
+    char command[INPUTMAX], * supportString;
     int ex = 0;
+    searchList *supportList1, *supportList2;
     root.type = dir;
     strcpy(root.name, "root");
     while (ex == 0) {
@@ -49,7 +58,34 @@ int main() {
             if(0 == strcmp(substr(command, 0, 6), "delete")) delete(&root, substr(command, 6, strlen(command)), 0);
         }
         if(0 == strcmp(substr(command, 0, 4), "find")) {
-            if(0 == search(&root, "", substr(command, 4, strlen(command)))) printf("no\n");
+            searchPaths = (searchList *)malloc(sizeof(searchList));
+            searchPaths->prev = NULL;
+            probeList = searchPaths;
+            if(0 != search(&root, "", substr(command, 4, strlen(command)))) {
+                supportList1 = searchPaths;
+                while(
+                    supportList1->texts != NULL &&
+                    0 != strcmp(substr(supportList1->texts,0,strlen(supportList1->texts)), "\0") &&
+                    supportList1->next != NULL
+                ) {
+                    supportList2 = (searchList *) supportList1->next;
+                    while(
+                        supportList2->texts != NULL &&
+                        0 != strcmp(substr(supportList2->texts,0,strlen(supportList2->texts)), "\0") &&
+                        supportList2->next != NULL
+                    ) {
+                        if(strcmp(supportList1->texts, supportList2->texts) > 0) {
+                            supportString = supportList1->texts;
+                            supportList1->texts = supportList2->texts;
+                            supportList2->texts = supportString;
+                        }
+                        supportList2 = (searchList *) supportList2->next;
+                    }
+                    printf("ok %s\n", supportList1->texts);
+                    supportList1 = (searchList *) supportList1->next;
+                    free(supportList1->prev);
+                }
+            } else printf("no\n");
         }
         if(0 == strcmp(substr(command, 0, 4), "exit")) ex++;
     }
@@ -167,17 +203,6 @@ void * create(element * fs, char * command, enum type_of_element el) {
     strcpy(new->text, "\0");
     last->childs[ last->nChilds ] = (void *) new;
     last->nChilds++;
-    for(int i = 0; i < last->nChilds; i++){
-        elem = (element *) last->childs[i];
-        for(int j = (i + 1); j < last->nChilds; j++) {
-            new = (element *) last->childs[j];
-            if(strcmp(elem->name, new->name) > 0) {
-                last->childs[i] = last->childs[j];
-                last->childs[j] = (void *) elem;
-                elem = (element *) last->childs[i];
-            }
-        }
-    }
     printf("ok\n");
 }
 
@@ -266,7 +291,8 @@ void * delete(element * fs, char * command, int all) {
 }
 
 int search(element * fs, char * path, char * name) {
-    char * newPath = (char *)malloc((MAXHEIGHT*MAXNAME + MAXHEIGHT)*sizeof(char));
+    char * newPath = (char *)malloc(MAXHEIGHT*MAXNAME + MAXHEIGHT);
+    searchList * newList = NULL;
     element * el;
     int i, finishedFlag = 0;
 
@@ -276,7 +302,13 @@ int search(element * fs, char * path, char * name) {
         strcat(newPath, "/");
         strcat(newPath, el->name);
         if(0 == strcmp(name, el->name)){
-            printf("ok %s\n", newPath);
+            newList = (searchList *)malloc(sizeof(searchList));
+            probeList->texts = (char *)malloc(strlen(newPath) + 1);
+            strcpy(probeList->texts, newPath);
+            probeList->next = (void *) newList;
+            newList->prev = (void *) probeList;
+            //printf("probe:\t%p\ntext:\t%s\nnext:\t%p\nprev:\t%p\n", probeList, probeList->texts, probeList->next, probeList->prev);
+            probeList = newList;
             if(finishedFlag == 0) finishedFlag++;
         }
         if(el->type == dir && el->nChilds > 0) {
