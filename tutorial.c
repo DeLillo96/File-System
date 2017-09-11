@@ -33,6 +33,7 @@ void * readFile(element *, char *);
 void * writeFile(element *, char *);
 void * delete(element *, char *, int);
 int search(element *, char *, char *);
+void * freeList(searchList *);
 
 searchList *searchPaths, *probeList;
 
@@ -65,13 +66,11 @@ int main() {
                 supportList1 = searchPaths;
                 while(
                     supportList1->texts != NULL &&
-                    0 != strcmp(substr(supportList1->texts,0,strlen(supportList1->texts)), "\0") &&
                     supportList1->next != NULL
                 ) {
                     supportList2 = (searchList *) supportList1->next;
                     while(
                         supportList2->texts != NULL &&
-                        0 != strcmp(substr(supportList2->texts,0,strlen(supportList2->texts)), "\0") &&
                         supportList2->next != NULL
                     ) {
                         if(strcmp(supportList1->texts, supportList2->texts) > 0) {
@@ -83,7 +82,7 @@ int main() {
                     }
                     printf("ok %s\n", supportList1->texts);
                     supportList1 = (searchList *) supportList1->next;
-                    free(supportList1->prev);
+                    freeList(supportList1->prev);
                 }
             } else printf("no\n");
         }
@@ -303,11 +302,12 @@ int search(element * fs, char * path, char * name) {
         strcat(newPath, el->name);
         if(0 == strcmp(name, el->name)){
             newList = (searchList *)malloc(sizeof(searchList));
+            newList->next = NULL;
+            newList->texts = NULL;
             probeList->texts = (char *)malloc(strlen(newPath) + 1);
             strcpy(probeList->texts, newPath);
             probeList->next = (void *) newList;
             newList->prev = (void *) probeList;
-            //printf("probe:\t%p\ntext:\t%s\nnext:\t%p\nprev:\t%p\n", probeList, probeList->texts, probeList->next, probeList->prev);
             probeList = newList;
             if(finishedFlag == 0) finishedFlag++;
         }
@@ -316,4 +316,9 @@ int search(element * fs, char * path, char * name) {
         }
     }
     return finishedFlag;
+}
+
+void * freeList(searchList * list) {
+    free(list->texts);
+    free(list);
 }
