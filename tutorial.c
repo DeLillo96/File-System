@@ -11,6 +11,7 @@
 enum type_of_element {dir = 0, file = 1};
 
 typedef struct element_str {
+    int level;
     enum type_of_element type;
     char name[MAXNAME];
     struct element_str *childs[MAXCHILDS];
@@ -36,7 +37,7 @@ char * substr(char * string, int startIndex, int endIndex) {
     if(startIndex < endIndex) {
         newString = (char *)malloc(endIndex - startIndex + 1);
         memcpy(newString, &string[startIndex], endIndex - startIndex);
-        newString[endIndex - startIndex + 1] = '\0';
+        newString[endIndex - startIndex] = '\0';
         return newString;
     } else return NULL;
 }
@@ -120,8 +121,14 @@ void * create(element * fs, char * command, enum type_of_element el) {
             }
         }
     }
+    if(last->nChilds == MAXCHILDS || last->level == MAXHEIGHT) {
+        printf("no\n");
+        return NULL;
+    }
     new = (element *)malloc(sizeof(element));
     new->type = el;
+    new->nChilds = 0;
+    new->level = last->level + 1;
     strcpy(new->name, needle);
     strcpy(new->text, "\0");
     last->childs[ last->nChilds ] = new;
@@ -247,6 +254,7 @@ int main() {
     searchList *supportList1, *supportList2;
     root.type = dir;
     strcpy(root.name, "root");
+    root.level = 0;
     while (1) {
         if(NULL == fgets(command, INPUTMAX, stdin))continue;
         if(0 == strncmp(command, "create_dir", 10)) {
