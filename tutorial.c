@@ -24,65 +24,7 @@ typedef struct {
     void *prev;
 } searchList;
 
-char * substr(char *, int, int);
-char * getNeedle(char *, int);
-char * getText(char *);
-element * getLastElement(element *, char *);
-void * create(element *, char *, enum type_of_element);
-void * readFile(element *, char *);
-void * writeFile(element *, char *);
-void * delete(element *, char *, int);
-int search(element *, char *, char *);
-void * freeList(searchList *);
-
 searchList *searchPaths, *probeList;
-
-int main() {
-    element root;
-    char command[INPUTMAX], * supportString;
-    searchList *supportList1, *supportList2;
-    root.type = dir;
-    strcpy(root.name, "root");
-    while (1) {
-        if(NULL == fgets(command, INPUTMAX, stdin))continue;
-        if(0 == strncmp(command, "create_dir", 10)) {
-            create(&root, substr(command, 10, strlen(command) - 1), dir);
-        } else {
-            if(0 == strncmp(command, "create", 6)) create(&root, substr(command, 6, strlen(command) - 1), file);
-        }
-        if(0 == strncmp(command, "read", 4)) readFile(&root, substr(command, 4, strlen(command) - 1));
-        if(0 == strncmp(command, "write", 5)) writeFile(&root, substr(command, 5, strlen(command) - 1));
-        if(0 == strncmp(command, "delete_r", 8)) {
-            delete(&root, substr(command, 8, strlen(command) - 1), 1);
-        } else {
-            if(0 == strncmp(command, "delete", 6)) delete(&root, substr(command, 6, strlen(command) - 1), 0);
-        }
-        if(0 == strncmp(command, "find", 4)) {
-            searchPaths = (searchList *)malloc(sizeof(searchList));
-            searchPaths->prev = NULL;
-            probeList = searchPaths;
-            if(0 != search(&root, "", substr(command, 4, strlen(command) - 1))) {
-                supportList1 = searchPaths;
-                while(supportList1->texts != NULL) {
-                    supportList2 = (searchList *) supportList1->next;
-                    while(supportList2->texts != NULL) {
-                        if(strcmp(supportList1->texts, supportList2->texts) > 0) {
-                            supportString = supportList1->texts;
-                            supportList1->texts = supportList2->texts;
-                            supportList2->texts = supportString;
-                        }
-                        supportList2 = (searchList *) supportList2->next;
-                    }
-                    printf("ok %s\n", supportList1->texts);
-                    supportList1 = (searchList *) supportList1->next;
-                    freeList(supportList1->prev);
-                }
-            } else printf("no\n");
-        }
-        if(0 == strncmp(command, "exit", 4)) break;
-    }
-    return 0;
-}
 
 char * substr(char * string, int startIndex, int endIndex) {
     char * newString;
@@ -304,4 +246,51 @@ int search(element * fs, char * path, char * name) {
 void * freeList(searchList * list) {
     free(list->texts);
     free(list);
+}
+
+int main() {
+    element root;
+    char command[INPUTMAX], * supportString;
+    searchList *supportList1, *supportList2;
+    root.type = dir;
+    strcpy(root.name, "root");
+    while (1) {
+        if(NULL == fgets(command, INPUTMAX, stdin))continue;
+        if(0 == strncmp(command, "create_dir", 10)) {
+            create(&root, substr(command, 10, strlen(command) - 1), dir);
+        } else {
+            if(0 == strncmp(command, "create", 6)) create(&root, substr(command, 6, strlen(command) - 1), file);
+        }
+        if(0 == strncmp(command, "read", 4)) readFile(&root, substr(command, 4, strlen(command) - 1));
+        if(0 == strncmp(command, "write", 5)) writeFile(&root, substr(command, 5, strlen(command) - 1));
+        if(0 == strncmp(command, "delete_r", 8)) {
+            delete(&root, substr(command, 8, strlen(command) - 1), 1);
+        } else {
+            if(0 == strncmp(command, "delete", 6)) delete(&root, substr(command, 6, strlen(command) - 1), 0);
+        }
+        if(0 == strncmp(command, "find", 4)) {
+            searchPaths = (searchList *)malloc(sizeof(searchList));
+            searchPaths->prev = NULL;
+            probeList = searchPaths;
+            if(0 != search(&root, "", substr(command, 4, strlen(command) - 1))) {
+                supportList1 = searchPaths;
+                while(supportList1->texts != NULL) {
+                    supportList2 = (searchList *) supportList1->next;
+                    while(supportList2->texts != NULL) {
+                        if(strcmp(supportList1->texts, supportList2->texts) > 0) {
+                            supportString = supportList1->texts;
+                            supportList1->texts = supportList2->texts;
+                            supportList2->texts = supportString;
+                        }
+                        supportList2 = (searchList *) supportList2->next;
+                    }
+                    printf("ok %s\n", supportList1->texts);
+                    supportList1 = (searchList *) supportList1->next;
+                    freeList(supportList1->prev);
+                }
+            } else printf("no\n");
+        }
+        if(0 == strncmp(command, "exit", 4)) break;
+    }
+    return 0;
 }
