@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define INPUTMAX 10036
+#define INPUTMAX 50036
 #define MAXNAME 255
 #define MAXFILE 1024
 #define MAXCHILDS 1024
@@ -34,7 +34,6 @@ char * substr(char * string, int startIndex, int endIndex) {
         startIndex++;
     }
     if(startIndex < endIndex) {
-        printf("alloc string\n");
         newString = (char *)malloc(endIndex - startIndex + 1);
         memcpy(newString, &string[startIndex], (endIndex - startIndex));
         newString[endIndex - startIndex] = '\0';
@@ -78,7 +77,7 @@ char * getText(char * path) {
 }
 
 element * getLastElement(element * fs, char * path) {
-    element * probeDir;
+    element * probeDir, * returned;
     char * needle;
     int length , i;
 
@@ -91,12 +90,18 @@ element * getLastElement(element * fs, char * path) {
             for(i = 0; i < fs->nChilds; i++) {
                 probeDir = fs->childs[i];
                 if(0 == strcmp(probeDir->name, needle)) {
-                    return getLastElement(probeDir, substr(path, length, strlen(path)));
+                    free(needle);
+                    needle = substr(path, length, strlen(path));
+                    returned = getLastElement(probeDir, needle);
+                    free(needle);
+                    return returned;
                 }
             }
         }
+        free(needle);
         return NULL;
     } else {
+        free(needle);
         return fs;
     }
 }
@@ -108,6 +113,7 @@ void * create(element * fs, char * command, enum type_of_element el) {
     int i;
 
     if(last == NULL) {
+        free(command);
         printf("no\n");
         return NULL;
     }
@@ -116,12 +122,16 @@ void * create(element * fs, char * command, enum type_of_element el) {
         elem = last->childs[i];
         if(elem->type == el) {
             if(0 == strcmp(elem->name, needle)) {
+                free(needle);
+                free(command);
                 printf("no\n");
                 return NULL;
             }
         }
     }
     if(last->nChilds == MAXCHILDS || last->level == MAXHEIGHT) {
+        free(needle);
+        free(command);
         printf("no\n");
         return NULL;
     }
@@ -133,6 +143,8 @@ void * create(element * fs, char * command, enum type_of_element el) {
     strcpy(new->text, "\0");
     last->childs[ last->nChilds ] = new;
     last->nChilds++;
+    free(needle);
+    free(command);
     printf("ok\n");
     return NULL;
 }
@@ -144,6 +156,8 @@ void * readFile(element * fs, char * command) {
     int i;
 
     if(last == NULL) {
+        free(needle);
+        free(command);
         printf("no\n");
         return NULL;
     }
@@ -152,10 +166,14 @@ void * readFile(element * fs, char * command) {
         if(el->type == file) {
             if(0 == strcmp(el->name, needle)) {
                 printf("contenuto %s\n", el->text);
+                free(needle);
+                free(command);
                 return NULL;
             }
         }
     }
+    free(needle);
+    free(command);
     printf("no\n");
     return NULL;
 }
@@ -167,6 +185,9 @@ void * writeFile(element * fs, char * command) {
     int i;
 
     if(last == NULL) {
+        free(path);
+        free(command);
+        free(text);
         printf("no\n");
         return NULL;
     }
@@ -177,10 +198,18 @@ void * writeFile(element * fs, char * command) {
             if(0 == strcmp(el->name, needle)) {
                 strcpy(el->text, text);
                 printf("ok %d\n", (int)strlen(text));
+                free(path);
+                free(needle);
+                free(command);
+                free(text);
                 return NULL;
             }
         }
     }
+    free(path);
+    free(needle);
+    free(command);
+    free(text);
     printf("no\n");
     return NULL;
 }
@@ -193,6 +222,7 @@ void * delete(element * fs, char * command, int all) {
     if(command != NULL) {
         last = getLastElement(fs, command);
         if(last == NULL) {
+            free(command);
             printf("no\n");
             return NULL;
         }
@@ -216,14 +246,17 @@ void * delete(element * fs, char * command, int all) {
             }
             free(el);
             if(command != NULL){
+                free(needle);
                 printf("ok\n");
             }
+            free(command);
             return NULL;
         }
     }
     if(command != NULL) {
-        return NULL;
+        free(command);
         printf("no\n");
+        return NULL;
     }
 }
 
