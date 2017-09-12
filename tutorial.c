@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define INPUTMAX 50036
+#define INPUTMAX 66036
 #define MAXNAME 255
 #define MAXFILE 1024
 #define MAXCHILDS 1024
@@ -10,18 +10,18 @@
 
 enum type_of_element {dir = 0, file = 1};
 
-typedef struct {
+typedef struct element_str {
     enum type_of_element type;
     char name[MAXNAME];
-    void *childs[MAXCHILDS];
+    struct element_str *childs[MAXCHILDS];
     int nChilds;
     char text[MAXFILE];
 } element;
 
-typedef struct {
-	char *texts;
-    void *next;
-    void *prev;
+typedef struct searchList_str {
+	char *text;
+    struct searchList_str *next;
+    struct searchList_str *prev;
 } searchList;
 
 searchList *searchPaths, *probeList;
@@ -33,7 +33,7 @@ char * substr(char * string, int startIndex, int endIndex) {
     while (string[startIndex] == ' ') {
         startIndex++;
     }
-    if(startIndex<endIndex) {
+    if(startIndex < endIndex) {
         newString = (char *)malloc(endIndex - startIndex + 1);
         memcpy(newString, &string[startIndex], endIndex - startIndex);
         newString[endIndex - startIndex + 1] = '\0';
@@ -52,11 +52,9 @@ char * getNeedle(char * path, int reverse) {
             }
         }
     }
-    if(path[startIndex] == '/') {
-        for (i = (startIndex + 1); i < strlen(path); i ++) {
+    for (i = (startIndex + 1); i < strlen(path); i ++) {
             if(path[i] == '\0' || path[i] == '/') break;
-        }
-    } else return NULL;
+    }
     return substr(path, (startIndex + 1), i);
 }
 
@@ -91,7 +89,7 @@ element * getLastElement(element * fs, char * path) {
     if(length != strlen(path)) {
         if(fs->type == dir) {
             for(i = 0; i < fs->nChilds; i++) {
-                probeDir = (element *) fs->childs[i];
+                probeDir = fs->childs[i];
                 if(0 == strcmp(probeDir->name, needle)) {
                     return getLastElement(probeDir, substr(path, length, strlen(path)));
                 }
@@ -114,7 +112,7 @@ void * create(element * fs, char * command, enum type_of_element el) {
     }
     needle = getNeedle(command, 1);
     for(int i = 0; i < last->nChilds; i++) {
-        elem = (element *) last->childs[i];
+        elem = last->childs[i];
         if(elem->type == el) {
             if(0 == strcmp(elem->name, needle)) {
                 printf("no\n");
@@ -122,11 +120,11 @@ void * create(element * fs, char * command, enum type_of_element el) {
             }
         }
     }
-    new = (element *) malloc(sizeof(element));
+    new = (element *)malloc(sizeof(element));
     new->type = el;
     strcpy(new->name, needle);
     strcpy(new->text, "\0");
-    last->childs[ last->nChilds ] = (void *) new;
+    last->childs[ last->nChilds ] = new;
     last->nChilds++;
     printf("ok\n");
 }
@@ -141,7 +139,7 @@ void * readFile(element * fs, char * command) {
         return NULL;
     }
     for(int i = 0; i < last->nChilds; i++) {
-        el = (element *) last->childs[i];
+        el = last->childs[i];
         if(el->type == file) {
             if(0 == strcmp(el->name, needle)) {
                 printf("contenuto %s\n", el->text);
@@ -163,7 +161,7 @@ void * writeFile(element * fs, char * command) {
     }
     needle = getNeedle(path, 1);
     for(int i = 0; i < last->nChilds; i++) {
-        el = (element *) last->childs[i];
+        el = last->childs[i];
         if(el->type == file) {
             if(0 == strcmp(el->name, needle)) {
                 strcpy(el->text, text);
@@ -189,13 +187,13 @@ void * delete(element * fs, char * command, int all) {
     } else last = fs;
 
     for(int i = 0; i < last->nChilds; i++) {
-        el = (element *) last->childs[i];
+        el = last->childs[i];
         if(command == NULL) needle = el->name;
         if(0 == strcmp(el->name, needle)) {
             if(el->type == dir) {
                 if(el->nChilds > 0 && all == 0) return NULL;
                 for(int j = 0; j < el->nChilds; j++) {
-                    delete((element *)el->childs[j], NULL, 1);
+                    delete(el->childs[j], NULL, 1);
                 }
             }
             last->nChilds--;
@@ -222,17 +220,17 @@ int search(element * fs, char * path, char * name) {
 
     for (i = 0; i < fs->nChilds; i++) {
         strcpy(newPath, path);
-        el = (element *) fs->childs[i];
+        el = fs->childs[i];
         strcat(newPath, "/");
         strcat(newPath, el->name);
         if(0 == strcmp(name, el->name)){
             newList = (searchList *)malloc(sizeof(searchList));
-            probeList->texts = (char *)malloc(strlen(newPath) + 1);
-            strcpy(probeList->texts, newPath);
-            probeList->next = (void *) newList;
-            newList->texts = NULL;
+            probeList->text = (char *)malloc(strlen(newPath) + 1);
+            strcpy(probeList->text, newPath);
+            probeList->next = newList;
+            newList->text = NULL;
             newList->next = NULL;
-            newList->prev = (void *) probeList;
+            newList->prev = probeList;
             probeList = newList;
             if(finishedFlag == 0) finishedFlag++;
         }
@@ -241,11 +239,6 @@ int search(element * fs, char * path, char * name) {
         }
     }
     return finishedFlag;
-}
-
-void * freeList(searchList * list) {
-    free(list->texts);
-    free(list);
 }
 
 int main() {
@@ -274,19 +267,20 @@ int main() {
             probeList = searchPaths;
             if(0 != search(&root, "", substr(command, 4, strlen(command) - 1))) {
                 supportList1 = searchPaths;
-                while(supportList1->texts != NULL) {
-                    supportList2 = (searchList *) supportList1->next;
-                    while(supportList2->texts != NULL) {
-                        if(strcmp(supportList1->texts, supportList2->texts) > 0) {
-                            supportString = supportList1->texts;
-                            supportList1->texts = supportList2->texts;
-                            supportList2->texts = supportString;
+                while(supportList1->text != NULL) {
+                    supportList2 = supportList1->next;
+                    while(supportList2->text != NULL) {
+                        if(strcmp(supportList1->text, supportList2->text) > 0) {
+                            supportString = supportList1->text;
+                            supportList1->text = supportList2->text;
+                            supportList2->text = supportString;
                         }
-                        supportList2 = (searchList *) supportList2->next;
+                        supportList2 = supportList2->next;
                     }
-                    printf("ok %s\n", supportList1->texts);
-                    supportList1 = (searchList *) supportList1->next;
-                    freeList(supportList1->prev);
+                    printf("ok %s\n", supportList1->text);
+                    free(supportList1->text);
+                    supportList1 = supportList1->next;
+                    free(supportList1->prev);
                 }
             } else printf("no\n");
         }
