@@ -46,19 +46,19 @@ int main() {
     strcpy(root.name, "root");
     while (ex == 0) {
         if(NULL == fgets(command, INPUTMAX, stdin))continue;
-        if(0 == strcmp(substr(command, 0, 10), "create_dir")) {
+        if(0 == strncmp(command, "create_dir", 10)) {
             create(&root, substr(command, 10, strlen(command)), dir);
         } else {
-            if(0 == strcmp(substr(command, 0, 6), "create")) create(&root, substr(command, 6, strlen(command)), file);
+            if(0 == strncmp(command, "create", 6)) create(&root, substr(command, 6, strlen(command)), file);
         }
-        if(0 == strcmp(substr(command, 0, 4), "read")) readFile(&root, substr(command, 4, strlen(command)));
-        if(0 == strcmp(substr(command, 0, 5), "write")) writeFile(&root, substr(command, 5, strlen(command)));
-        if(0 == strcmp(substr(command, 0, 8), "delete_r")) {
+        if(0 == strncmp(command, "read", 4)) readFile(&root, substr(command, 4, strlen(command)));
+        if(0 == strncmp(command, "write", 5)) writeFile(&root, substr(command, 5, strlen(command)));
+        if(0 == strncmp(command, "delete_r", 8)) {
             delete(&root, substr(command, 8, strlen(command)), 1);
         } else {
-            if(0 == strcmp(substr(command, 0, 6), "delete")) delete(&root, substr(command, 6, strlen(command)), 0);
+            if(0 == strncmp(command, "delete", 6)) delete(&root, substr(command, 6, strlen(command)), 0);
         }
-        if(0 == strcmp(substr(command, 0, 4), "find")) {
+        if(0 == strncmp(command, "find", 4)) {
             searchPaths = (searchList *)malloc(sizeof(searchList));
             searchPaths->prev = NULL;
             probeList = searchPaths;
@@ -86,13 +86,13 @@ int main() {
                 }
             } else printf("no\n");
         }
-        if(0 == strcmp(substr(command, 0, 4), "exit")) ex++;
+        if(0 == strncmp(command, "exit", 4)) ex++;
     }
     return 0;
 }
 
 char * substr(char * string, int startIndex, int endIndex) {
-    char * newString = (char *)malloc((endIndex - startIndex)*sizeof(char)), * other;
+    char newString[endIndex - startIndex], * other;
     int i, c = 0;
 
     for(i = startIndex; i < endIndex; i ++) {
@@ -102,7 +102,7 @@ char * substr(char * string, int startIndex, int endIndex) {
             }
             if(string[i] == '\0') break;
     }
-    other = (char *)malloc((c+1)*sizeof(char));
+    other = (char *)malloc(c + 1);
     for(i = 0; i < c; i++) {
         other[i] = newString[i];
     }
@@ -117,7 +117,7 @@ char * getNeedle(char * path, int reverse) {
         for(i = strlen(path); i > 0; i--){
             if(path[i] == '/') {
                 startIndex = i;
-                break;
+                return substr(path, (i + 1), strlen(path));
             }
         }
     }
@@ -131,25 +131,21 @@ char * getNeedle(char * path, int reverse) {
 
 char * getText(char * path) {
     char * text;
-    int i, c = 0, startRecord = 0;
+    int startRecord = 0, startIndex = 0, endIndex = strlen(path);
 
-    text = (char *)malloc(MAXFILE*sizeof(char));
-
-    for (i = 0; i < MAXFILE; i ++) {
+    for (int i = (endIndex - 1); i > 0; i --) {
         if(path[i] == '"') {
             if(startRecord == 1){
+                startIndex = i+ 1;
                 break;
             } else {
+                endIndex = i;
                 startRecord = 1;
                 continue;
             }
         }
-        if(startRecord == 1){
-            text[c] = path[i];
-            c++;
-        }
     }
-    return text;
+    return substr(path, startIndex, endIndex);
 }
 
 element * getLastElement(element * fs, char * path) {
@@ -157,7 +153,7 @@ element * getLastElement(element * fs, char * path) {
     char * needle;
     int length , i;
 
-    if(path == NULL || 0 == strcmp(path, "\0")) return fs;
+    if(path == NULL) return fs;
     needle = getNeedle(path, 0);
     length = strlen(needle) + 1;
 
@@ -185,7 +181,6 @@ void * create(element * fs, char * command, enum type_of_element el) {
         printf("no\n");
         return NULL;
     }
-
     needle = getNeedle(command, 1);
     for(int i = 0; i < last->nChilds; i++) {
         elem = (element *) last->childs[i];
@@ -218,11 +213,7 @@ void * readFile(element * fs, char * command) {
         el = (element *) last->childs[i];
         if(el->type == file) {
             if(0 == strcmp(el->name, needle)) {
-                if(0 != strcmp("\0", el->text)){
-                    printf("contenuto %s\n", el->text);
-                } else {
-                    printf("contenuto\n");
-                }
+                printf("contenuto %s\n", el->text);
                 return NULL;
             }
         }
@@ -254,23 +245,26 @@ void * writeFile(element * fs, char * command) {
 }
 
 void * delete(element * fs, char * command, int all) {
-    element * el, * last = getLastElement(fs, command);
-    char * needle = getNeedle(command, 1);
+    element * el, * last;
+    char * needle;
 
-    if(last == NULL) {
-        if(0 != strcmp(command, "/*")) printf("no\n");
-        return NULL;
-    }
+    if(command != NULL) {
+        last = getLastElement(fs, command);
+        if(last == NULL) {
+            printf("no\n");
+            return NULL;
+        }
+        needle = getNeedle(command, 1);
+    } else last = fs;
+
     for(int i = 0; i < last->nChilds; i++) {
         el = (element *) last->childs[i];
-        if(0 == strcmp(command, "/*")) {
-            needle = el->name;
-        }
+        if(command == NULL) needle = el->name;
         if(0 == strcmp(el->name, needle)) {
             if(el->type == dir) {
                 if(el->nChilds > 0 && all == 0) return NULL;
                 for(int j = 0; j < el->nChilds; j++) {
-                    delete((element *)el->childs[j], "/*", 1);
+                    delete((element *)el->childs[j], NULL, 1);
                 }
             }
             last->nChilds--;
@@ -278,19 +272,19 @@ void * delete(element * fs, char * command, int all) {
                 last->childs[i] = last->childs[last->nChilds];
             }
             if(last->nChilds != 0) free(el);
-            if(0 != strcmp(command, "/*")){
+            if(command != NULL){
                 printf("ok\n");
             }
             return NULL;
         }
     }
-    if(0 != strcmp(command, "/*")){
+    if(command != NULL) {
         printf("no\n");
     }
 }
 
 int search(element * fs, char * path, char * name) {
-    char * newPath = (char *)malloc(MAXHEIGHT*MAXNAME + MAXHEIGHT);
+    char newPath[MAXHEIGHT*MAXNAME + MAXHEIGHT];
     searchList * newList = NULL;
     element * el;
     int i, finishedFlag = 0;
@@ -302,11 +296,11 @@ int search(element * fs, char * path, char * name) {
         strcat(newPath, el->name);
         if(0 == strcmp(name, el->name)){
             newList = (searchList *)malloc(sizeof(searchList));
-            newList->next = NULL;
-            newList->texts = NULL;
             probeList->texts = (char *)malloc(strlen(newPath) + 1);
             strcpy(probeList->texts, newPath);
             probeList->next = (void *) newList;
+            newList->texts = NULL;
+            newList->next = NULL;
             newList->prev = (void *) probeList;
             probeList = newList;
             if(finishedFlag == 0) finishedFlag++;
