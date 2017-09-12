@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define INPUTMAX 66036
+#define INPUTMAX 10036
 #define MAXNAME 255
 #define MAXFILE 1024
 #define MAXCHILDS 1024
@@ -29,21 +29,21 @@ searchList *searchPaths, *probeList;
 
 char * substr(char * string, int startIndex, int endIndex) {
     char * newString;
-    int i, c = 0;
 
     while (string[startIndex] == ' ') {
         startIndex++;
     }
     if(startIndex < endIndex) {
+        printf("alloc string\n");
         newString = (char *)malloc(endIndex - startIndex + 1);
-        memcpy(newString, &string[startIndex], endIndex - startIndex);
+        memcpy(newString, &string[startIndex], (endIndex - startIndex));
         newString[endIndex - startIndex] = '\0';
         return newString;
     } else return NULL;
 }
 
 char * getNeedle(char * path, int reverse) {
-    int i, c = 0, startIndex = 0;
+    int i, startIndex = 0;
 
     if(reverse == 1) {
         for(i = strlen(path); i > 0; i--){
@@ -60,10 +60,9 @@ char * getNeedle(char * path, int reverse) {
 }
 
 char * getText(char * path) {
-    char * text;
-    int startRecord = 0, startIndex = 0, endIndex = strlen(path);
+    int i, startRecord = 0, startIndex = 0, endIndex = strlen(path);
 
-    for (int i = (endIndex - 1); i > 0; i --) {
+    for (i = (endIndex - 1); i > 0; i --) {
         if(path[i] == '"') {
             if(startRecord == 1){
                 startIndex = i+ 1;
@@ -106,13 +105,14 @@ void * create(element * fs, char * command, enum type_of_element el) {
     element * last = getLastElement(fs, command);
     element * new, * elem;
     char * needle;
+    int i;
 
     if(last == NULL) {
         printf("no\n");
         return NULL;
     }
     needle = getNeedle(command, 1);
-    for(int i = 0; i < last->nChilds; i++) {
+    for(i = 0; i < last->nChilds; i++) {
         elem = last->childs[i];
         if(elem->type == el) {
             if(0 == strcmp(elem->name, needle)) {
@@ -134,18 +134,20 @@ void * create(element * fs, char * command, enum type_of_element el) {
     last->childs[ last->nChilds ] = new;
     last->nChilds++;
     printf("ok\n");
+    return NULL;
 }
 
 void * readFile(element * fs, char * command) {
     element * last = getLastElement(fs, command);
     element * el;
     char* needle  = getNeedle(command, 1);
+    int i;
 
     if(last == NULL) {
         printf("no\n");
         return NULL;
     }
-    for(int i = 0; i < last->nChilds; i++) {
+    for(i = 0; i < last->nChilds; i++) {
         el = last->childs[i];
         if(el->type == file) {
             if(0 == strcmp(el->name, needle)) {
@@ -155,19 +157,21 @@ void * readFile(element * fs, char * command) {
         }
     }
     printf("no\n");
+    return NULL;
 }
 
 void * writeFile(element * fs, char * command) {
     element * el;
     char * needle, * text = getText(command), * path = substr(command, 0, strlen(command) - strlen(text) - 3);
     element * last = getLastElement(fs, path);
+    int i;
 
     if(last == NULL) {
         printf("no\n");
         return NULL;
     }
     needle = getNeedle(path, 1);
-    for(int i = 0; i < last->nChilds; i++) {
+    for(i = 0; i < last->nChilds; i++) {
         el = last->childs[i];
         if(el->type == file) {
             if(0 == strcmp(el->name, needle)) {
@@ -178,11 +182,13 @@ void * writeFile(element * fs, char * command) {
         }
     }
     printf("no\n");
+    return NULL;
 }
 
 void * delete(element * fs, char * command, int all) {
     element * el, * last;
     char * needle;
+    int i;
 
     if(command != NULL) {
         last = getLastElement(fs, command);
@@ -193,7 +199,7 @@ void * delete(element * fs, char * command, int all) {
         needle = getNeedle(command, 1);
     } else last = fs;
 
-    for(int i = 0; i < last->nChilds; i++) {
+    for(i = 0; i < last->nChilds; i++) {
         el = last->childs[i];
         if(command == NULL) needle = el->name;
         if(0 == strcmp(el->name, needle)) {
@@ -201,13 +207,14 @@ void * delete(element * fs, char * command, int all) {
                 if(el->nChilds > 0 && all == 0) return NULL;
                 for(int j = 0; j < el->nChilds; j++) {
                     delete(el->childs[j], NULL, 1);
+                    free(el->childs[j]);
                 }
             }
             last->nChilds--;
             if(i != last->nChilds) {
                 last->childs[i] = last->childs[last->nChilds];
             }
-            if(last->nChilds != 0) free(el);
+            free(el);
             if(command != NULL){
                 printf("ok\n");
             }
@@ -215,12 +222,13 @@ void * delete(element * fs, char * command, int all) {
         }
     }
     if(command != NULL) {
+        return NULL;
         printf("no\n");
     }
 }
 
 int search(element * fs, char * path, char * name) {
-    char newPath[MAXHEIGHT*MAXNAME + MAXHEIGHT];
+    char newPath[MAXHEIGHT*MAXNAME];
     searchList * newList = NULL;
     element * el;
     int i, finishedFlag = 0;
@@ -291,6 +299,7 @@ int main() {
                     free(supportList1->prev);
                 }
             } else printf("no\n");
+            free(supportList1);
         }
         if(0 == strncmp(command, "exit", 4)) break;
     }
