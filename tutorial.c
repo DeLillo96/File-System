@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define INPUTMAX 50036
+#define INPUTMAX 40000
 #define MAXNAME 255
 #define MAXFILE 1024
 #define MAXCHILDS 1024
@@ -13,7 +13,7 @@ enum type_of_element {dir = 0, file = 1};
 typedef struct element_str {
     enum type_of_element type;
     char name[MAXNAME];
-    struct element_str *childs[MAXCHILDS];
+    struct element_str **childs;
     int nChilds;
     char text[MAXFILE];
 } element;
@@ -140,6 +140,11 @@ void * create(element * fs, char * command, enum type_of_element el) {
     new->nChilds = 0;
     strcpy(new->name, needle);
     strcpy(new->text, "\0");
+    if(last->nChilds > 0) {
+        last->childs = (element**)realloc(last->childs, (last->nChilds + 1)*sizeof(element *));
+    } else {
+        last->childs = (element**)malloc(sizeof(element *));
+    }
     last->childs[ last->nChilds ] = new;
     last->nChilds++;
     free(needle);
@@ -242,6 +247,11 @@ void * delete(element * fs, char * command, int all) {
             last->nChilds--;
             if(i != last->nChilds) {
                 last->childs[i] = last->childs[last->nChilds];
+            }
+            if(last->nChilds > 0) {
+                last->childs = (element **)realloc(last->childs, last->nChilds*sizeof(element *));
+            } else {
+                free(last->childs);
             }
             free(el);
             if(command != NULL){
