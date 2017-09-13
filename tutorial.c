@@ -21,13 +21,14 @@ typedef struct searchList_str {
 
 searchList *searchPaths, *probeList;
 
-char * substr(char * string, int startIndex, int endIndex) {
+char * substr(char * string, int startIndex, int offset) {
     char * newString;
 
-    if(startIndex < endIndex && string != NULL) {
-        newString = (char *)malloc(endIndex - startIndex + 1);
-        memcpy(newString, &string[startIndex], (endIndex - startIndex));
-        newString[endIndex - startIndex] = '\0';
+    if(startIndex < offset) {
+        offset -= startIndex;
+        newString = (char *)malloc(offset + 1);
+        memcpy(newString, &string[startIndex], offset);
+        newString[offset] = '\0';
         return newString;
     } else return NULL;
 }
@@ -50,25 +51,18 @@ char * getNeedle(char * path, int reverse) {
 }
 
 char * getText(char * path) {
-    int i, startRecord = 0, startIndex = 0, endIndex = (strlen(path) - 1);
+    int i, endIndex = (strlen(path) - 2);
 
     for (i = endIndex; i > 0; i --) {
         if(path[i] == '"') {
-            if(startRecord == 1){
-                startIndex = i + 1;
-                break;
-            } else {
-                endIndex = i;
-                startRecord = 1;
-                continue;
-            }
+            break;
         }
     }
-    return substr(path, startIndex, endIndex);
+    return substr(path, (i + 1), (endIndex + 1));
 }
 
 element * getLastElement(element * fs, char * path) {
-    element * probeDir, * returned;
+    element * probeDir;
     char * needle;
     int length , i, lenPath = strlen(path), flag = 2;
 
@@ -210,30 +204,32 @@ void * writeFile(element * fs, char * command) {
     return NULL;
 }
 
+void * delete_r(element * fs) {
+    for(int i = 0; i < fs->nChilds; i++) {
+        if(fs->childs[i]->nChilds > 0) delete_r(fs->childs[i]);
+    }
+    free(fs->childs);
+    free(fs);
+}
+
 void * delete(element * fs, char * command, int all) {
-    element * el, * last;
+    element * el, * last = getLastElement(fs, command);;
     char * needle;
     int i;
 
-    if(command != NULL) {
-        last = getLastElement(fs, command);
-        if(last == NULL) {
-            free(command);
-            printf("no\n");
-            return NULL;
-        }
-        needle = getNeedle(command, 1);
-    } else last = fs;
-
+    if(last == NULL) {
+        free(command);
+        printf("no\n");
+        return NULL;
+    }
+    needle = getNeedle(command, 1);
     for(i = 0; i < last->nChilds; i++) {
         el = last->childs[i];
-        if(command == NULL) needle = el->name;
         if(0 == strcmp(el->name, needle)) {
             if(el->type == 0) {
-                if(el->nChilds > 0 && all == 0) return NULL;
+                if(el->nChilds > 0 && all == 0) break;
                 for(int j = 0; j < el->nChilds; j++) {
-                    delete(el->childs[j], NULL, 1);
-                    free(el->childs[j]);
+                    delete_r(el->childs[j]);
                 }
             }
             last->nChilds--;
@@ -246,19 +242,14 @@ void * delete(element * fs, char * command, int all) {
                 free(last->childs);
             }
             free(el);
-            if(command != NULL){
-                free(needle);
-                printf("ok\n");
-            }
+            free(needle);
             free(command);
+            printf("ok\n");
             return NULL;
         }
     }
-    if(command != NULL) {
-        free(command);
-        printf("no\n");
-        return NULL;
-    }
+    free(command);
+    printf("no\n");
 }
 
 int search(element * fs, char * path, char * name) {
@@ -293,7 +284,7 @@ int search(element * fs, char * path, char * name) {
 int main() {
     element root;
     char command[40000], * supportString;
-    searchList *supportList1, *supportList2;
+    searchList *supportList;
     int i;
     root.type = 0;
     strcpy(root.name, "root");
@@ -358,21 +349,21 @@ int main() {
                 i++;
             }
             if(0 != search(&root, "", substr(command, i, strlen(command) - 1))) {
-                supportList1 = searchPaths;
-                while(supportList1->text != NULL) {
-                    supportList2 = supportList1->next;
-                    while(supportList2->text != NULL) {
-                        if(strcmp(supportList1->text, supportList2->text) > 0) {
-                            supportString = supportList1->text;
-                            supportList1->text = supportList2->text;
-                            supportList2->text = supportString;
+                supportList = searchPaths;
+                while(supportList->text != NULL) {
+                    probeList = supportList->next;
+                    while(probeList->text != NULL) {
+                        if(strcmp(supportList->text, probeList->text) > 0) {
+                            supportString = supportList->text;
+                            supportList->text = probeList->text;
+                            probeList->text = supportString;
                         }
-                        supportList2 = supportList2->next;
+                        probeList = probeList->next;
                     }
-                    printf("ok %s\n", supportList1->text);
-                    free(supportList1->text);
-                    supportList1 = supportList1->next;
-                    free(supportList1->prev);
+                    printf("ok %s\n", supportList->text);
+                    free(supportList->text);
+                    supportList = supportList->next;
+                    free(supportList->prev);
                 }
             } else printf("no\n");
             continue;
