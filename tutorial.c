@@ -2,10 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define INPUTMAX 40000
 #define MAXNAME 255
-#define MAXFILE 512
-#define MAXCHILDS 1024
 #define MAXHEIGHT 255
 
 typedef struct element_str {
@@ -13,7 +10,7 @@ typedef struct element_str {
     char name[MAXNAME];
     struct element_str **childs;
     int nChilds;
-    char text[MAXFILE];
+    char text[512];
 } element;
 
 typedef struct searchList_str {
@@ -27,11 +24,7 @@ searchList *searchPaths, *probeList;
 char * substr(char * string, int startIndex, int endIndex) {
     char * newString;
 
-    if(string == NULL) return NULL;
-    while (string[startIndex] == ' ') {
-        startIndex++;
-    }
-    if(startIndex < endIndex) {
+    if(startIndex < endIndex && string != NULL) {
         newString = (char *)malloc(endIndex - startIndex + 1);
         memcpy(newString, &string[startIndex], (endIndex - startIndex));
         newString[endIndex - startIndex] = '\0';
@@ -51,18 +44,18 @@ char * getNeedle(char * path, int reverse) {
         }
     }
     for (i = startIndex; i < lenPath; i ++) {
-            if(path[i] == '\0' || path[i] == '/') break;
+        if(path[i] == '\0' || path[i] == '/') break;
     }
     return substr(path, startIndex, i);
 }
 
 char * getText(char * path) {
-    int i, startRecord = 0, startIndex = 0, endIndex = strlen(path);
+    int i, startRecord = 0, startIndex = 0, endIndex = (strlen(path) - 1);
 
-    for (i = (endIndex - 1); i > 0; i --) {
+    for (i = endIndex; i > 0; i --) {
         if(path[i] == '"') {
             if(startRecord == 1){
-                startIndex = i+ 1;
+                startIndex = i + 1;
                 break;
             } else {
                 endIndex = i;
@@ -77,30 +70,37 @@ char * getText(char * path) {
 element * getLastElement(element * fs, char * path) {
     element * probeDir, * returned;
     char * needle;
-    int length , i, lenPath = strlen(path);
+    int length , i, lenPath = strlen(path), flag = 2;
 
-    if(path == NULL) return fs;
-    needle = getNeedle(path, 0);
-    length = strlen(needle) + 1;
-
-    if(length != lenPath) {
-        if(fs->type == 0) {
-            for(i = 0; i < fs->nChilds; i++) {
-                probeDir = fs->childs[i];
-                if(0 == strcmp(probeDir->name, needle)) {
-                    free(needle);
-                    needle = substr(path, length, lenPath);
-                    returned = getLastElement(probeDir, needle);
-                    free(needle);
-                    return returned;
+    while (1) {
+        needle = getNeedle(path, 0);
+        length = strlen(needle) + 1;
+        lenPath = strlen(path);
+        if(length != lenPath){
+            if(fs->type == 0) {
+                for(i = 0; i < fs->nChilds; i++) {
+                    probeDir = fs->childs[i];
+                    if(0 == strcmp(probeDir->name, needle)) {
+                        free(needle);
+                        needle = substr(path, length, lenPath);
+                        if(flag != 2) free(path);
+                        path = needle;
+                        fs = probeDir;
+                        flag = 1;
+                        break;
+                    }
+                }
+                if(flag == 1) {
+                    flag = 0;
+                    continue;
                 }
             }
+            free(needle);
+            return NULL;
+        } else {
+            free(needle);
+            return fs;
         }
-        free(needle);
-        return NULL;
-    } else {
-        free(needle);
-        return fs;
     }
 }
 
@@ -292,35 +292,60 @@ int search(element * fs, char * path, char * name) {
 
 int main() {
     element root;
-    char command[INPUTMAX], * supportString;
+    char command[40000], * supportString;
     searchList *supportList1, *supportList2;
+    int i;
     root.type = 0;
     strcpy(root.name, "root");
     while (1) {
-        fgets(command, INPUTMAX, stdin);
+        fgets(command, 40000, stdin);
         if(0 == strncmp(command, "create_dir", 10)) {
-            create(&root, substr(command, 10, strlen(command) - 1), 0);
+            i = 11;
+            while (command[i] == ' ') {
+                i++;
+            }
+            create(&root, substr(command, i, strlen(command) - 1), 0);
             continue;
         } else {
             if(0 == strncmp(command, "create", 6)){
-                create(&root, substr(command, 6, strlen(command) - 1), 1);
+                i = 7;
+                while (command[i] == ' ') {
+                    i++;
+                }
+                create(&root, substr(command, i, strlen(command) - 1), 1);
                 continue;
             }
         }
         if(0 == strncmp(command, "read", 4)) {
-            readFile(&root, substr(command, 4, strlen(command) - 1));
+            i = 5;
+            while (command[i] == ' ') {
+                i++;
+            }
+            readFile(&root, substr(command, i, strlen(command) - 1));
             continue;
         }
         if(0 == strncmp(command, "write", 5)) {
-            writeFile(&root, substr(command, 5, strlen(command) - 1));
+            i = 6;
+            while (command[i] == ' ') {
+                i++;
+            }
+            writeFile(&root, substr(command, i, strlen(command) - 1));
             continue;
         }
         if(0 == strncmp(command, "delete_r", 8)) {
-            delete(&root, substr(command, 8, strlen(command) - 1), 1);
+            i = 9;
+            while (command[i] == ' ') {
+                i++;
+            }
+            delete(&root, substr(command, i, strlen(command) - 1), 1);
             continue;
         } else {
             if(0 == strncmp(command, "delete", 6)) {
-                delete(&root, substr(command, 6, strlen(command) - 1), 0);
+                i = 7;
+                while (command[i] == ' ') {
+                    i++;
+                }
+                delete(&root, substr(command, i, strlen(command) - 1), 0);
                 continue;
             }
         }
@@ -328,7 +353,11 @@ int main() {
             searchPaths = (searchList *)malloc(sizeof(searchList));
             searchPaths->prev = NULL;
             probeList = searchPaths;
-            if(0 != search(&root, "", substr(command, 4, strlen(command) - 1))) {
+            i = 5;
+            while (command[i] == ' ') {
+                i++;
+            }
+            if(0 != search(&root, "", substr(command, i, strlen(command) - 1))) {
                 supportList1 = searchPaths;
                 while(supportList1->text != NULL) {
                     supportList2 = supportList1->next;
