@@ -297,18 +297,32 @@ int main() {
     root.type = 0;
     strcpy(root.name, "root");
     while (1) {
-        if(NULL == fgets(command, INPUTMAX, stdin))continue;
+        fgets(command, INPUTMAX, stdin);
         if(0 == strncmp(command, "create_dir", 10)) {
             create(&root, substr(command, 10, strlen(command) - 1), 0);
+            continue;
         } else {
-            if(0 == strncmp(command, "create", 6)) create(&root, substr(command, 6, strlen(command) - 1), 1);
+            if(0 == strncmp(command, "create", 6)){
+                create(&root, substr(command, 6, strlen(command) - 1), 1);
+                continue;
+            }
         }
-        if(0 == strncmp(command, "read", 4)) readFile(&root, substr(command, 4, strlen(command) - 1));
-        if(0 == strncmp(command, "write", 5)) writeFile(&root, substr(command, 5, strlen(command) - 1));
+        if(0 == strncmp(command, "read", 4)) {
+            readFile(&root, substr(command, 4, strlen(command) - 1));
+            continue;
+        }
+        if(0 == strncmp(command, "write", 5)) {
+            writeFile(&root, substr(command, 5, strlen(command) - 1));
+            continue;
+        }
         if(0 == strncmp(command, "delete_r", 8)) {
             delete(&root, substr(command, 8, strlen(command) - 1), 1);
+            continue;
         } else {
-            if(0 == strncmp(command, "delete", 6)) delete(&root, substr(command, 6, strlen(command) - 1), 0);
+            if(0 == strncmp(command, "delete", 6)) {
+                delete(&root, substr(command, 6, strlen(command) - 1), 0);
+                continue;
+            }
         }
         if(0 == strncmp(command, "find", 4)) {
             searchPaths = (searchList *)malloc(sizeof(searchList));
@@ -332,7 +346,7 @@ int main() {
                     free(supportList1->prev);
                 }
             } else printf("no\n");
-            free(supportList1);
+            continue;
         }
         if(0 == strncmp(command, "exit", 4)) break;
     }
