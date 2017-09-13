@@ -4,14 +4,12 @@
 
 #define INPUTMAX 40000
 #define MAXNAME 255
-#define MAXFILE 1024
+#define MAXFILE 512
 #define MAXCHILDS 1024
 #define MAXHEIGHT 255
 
-enum type_of_element {dir = 0, file = 1};
-
 typedef struct element_str {
-    enum type_of_element type;
+    int type;
     char name[MAXNAME];
     struct element_str **childs;
     int nChilds;
@@ -42,20 +40,20 @@ char * substr(char * string, int startIndex, int endIndex) {
 }
 
 char * getNeedle(char * path, int reverse) {
-    int i, startIndex = 0;
+    int i, startIndex = 1, lenPath = strlen(path);
 
     if(reverse == 1) {
-        for(i = strlen(path); i > 0; i--){
+        for(i = lenPath; i > 0; i--){
             if(path[i] == '/') {
                 startIndex = i;
-                return substr(path, (i + 1), strlen(path));
+                return substr(path, (i + 1), lenPath);
             }
         }
     }
-    for (i = (startIndex + 1); i < strlen(path); i ++) {
+    for (i = startIndex; i < lenPath; i ++) {
             if(path[i] == '\0' || path[i] == '/') break;
     }
-    return substr(path, (startIndex + 1), i);
+    return substr(path, startIndex, i);
 }
 
 char * getText(char * path) {
@@ -79,19 +77,19 @@ char * getText(char * path) {
 element * getLastElement(element * fs, char * path) {
     element * probeDir, * returned;
     char * needle;
-    int length , i;
+    int length , i, lenPath = strlen(path);
 
     if(path == NULL) return fs;
     needle = getNeedle(path, 0);
     length = strlen(needle) + 1;
 
-    if(length != strlen(path)) {
-        if(fs->type == dir) {
+    if(length != lenPath) {
+        if(fs->type == 0) {
             for(i = 0; i < fs->nChilds; i++) {
                 probeDir = fs->childs[i];
                 if(0 == strcmp(probeDir->name, needle)) {
                     free(needle);
-                    needle = substr(path, length, strlen(path));
+                    needle = substr(path, length, lenPath);
                     returned = getLastElement(probeDir, needle);
                     free(needle);
                     return returned;
@@ -106,7 +104,7 @@ element * getLastElement(element * fs, char * path) {
     }
 }
 
-void * create(element * fs, char * command, enum type_of_element el) {
+void * create(element * fs, char * command, int type) {
     element * last = getLastElement(fs, command);
     element * new, * elem;
     char * needle;
@@ -120,7 +118,7 @@ void * create(element * fs, char * command, enum type_of_element el) {
     needle = getNeedle(command, 1);
     for(i = 0; i < last->nChilds; i++) {
         elem = last->childs[i];
-        if(elem->type == el) {
+        if(elem->type == type) {
             if(0 == strcmp(elem->name, needle)) {
                 free(needle);
                 free(command);
@@ -129,14 +127,8 @@ void * create(element * fs, char * command, enum type_of_element el) {
             }
         }
     }
-    if(last->nChilds == MAXCHILDS) {
-        free(needle);
-        free(command);
-        printf("no\n");
-        return NULL;
-    }
     new = (element *)malloc(sizeof(element));
-    new->type = el;
+    new->type = type;
     new->nChilds = 0;
     strcpy(new->name, needle);
     strcpy(new->text, "\0");
@@ -167,7 +159,7 @@ void * readFile(element * fs, char * command) {
     }
     for(i = 0; i < last->nChilds; i++) {
         el = last->childs[i];
-        if(el->type == file) {
+        if(el->type == 1) {
             if(0 == strcmp(el->name, needle)) {
                 printf("contenuto %s\n", el->text);
                 free(needle);
@@ -198,7 +190,7 @@ void * writeFile(element * fs, char * command) {
     needle = getNeedle(path, 1);
     for(i = 0; i < last->nChilds; i++) {
         el = last->childs[i];
-        if(el->type == file) {
+        if(el->type == 1) {
             if(0 == strcmp(el->name, needle)) {
                 strcpy(el->text, text);
                 printf("ok %d\n", (int)strlen(text));
@@ -237,7 +229,7 @@ void * delete(element * fs, char * command, int all) {
         el = last->childs[i];
         if(command == NULL) needle = el->name;
         if(0 == strcmp(el->name, needle)) {
-            if(el->type == dir) {
+            if(el->type == 0) {
                 if(el->nChilds > 0 && all == 0) return NULL;
                 for(int j = 0; j < el->nChilds; j++) {
                     delete(el->childs[j], NULL, 1);
@@ -291,7 +283,7 @@ int search(element * fs, char * path, char * name) {
             probeList = newList;
             if(finishedFlag == 0) finishedFlag++;
         }
-        if(el->type == dir && el->nChilds > 0) {
+        if(el->type == 0 && el->nChilds > 0) {
             if(0 != search(el, newPath, name) && finishedFlag == 0) finishedFlag++;
         }
     }
@@ -302,14 +294,14 @@ int main() {
     element root;
     char command[INPUTMAX], * supportString;
     searchList *supportList1, *supportList2;
-    root.type = dir;
+    root.type = 0;
     strcpy(root.name, "root");
     while (1) {
         if(NULL == fgets(command, INPUTMAX, stdin))continue;
         if(0 == strncmp(command, "create_dir", 10)) {
-            create(&root, substr(command, 10, strlen(command) - 1), dir);
+            create(&root, substr(command, 10, strlen(command) - 1), 0);
         } else {
-            if(0 == strncmp(command, "create", 6)) create(&root, substr(command, 6, strlen(command) - 1), file);
+            if(0 == strncmp(command, "create", 6)) create(&root, substr(command, 6, strlen(command) - 1), 1);
         }
         if(0 == strncmp(command, "read", 4)) readFile(&root, substr(command, 4, strlen(command) - 1));
         if(0 == strncmp(command, "write", 5)) writeFile(&root, substr(command, 5, strlen(command) - 1));
