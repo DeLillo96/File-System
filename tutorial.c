@@ -2,12 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#define MAXNAME 255
-#define MAXHEIGHT 255
-
 typedef struct element_str {
     int type;
-    char name[MAXNAME];
+    char *name;
     struct element_str **childs;
     int nChilds;
     char *text;
@@ -124,7 +121,7 @@ void * create(element * fs, char * command, int type) {
     new = (element *)malloc(sizeof(element));
     new->type = type;
     new->nChilds = 0;
-    strcpy(new->name, needle);
+    new->name = needle;
     new->text = NULL;
     if(last->nChilds > 0) {
         last->childs = (element**)realloc(last->childs, (last->nChilds + 1)*sizeof(element *));
@@ -133,7 +130,6 @@ void * create(element * fs, char * command, int type) {
     }
     last->childs[ last->nChilds ] = new;
     last->nChilds++;
-    free(needle);
     free(command);
     printf("ok\n");
     return NULL;
@@ -210,6 +206,7 @@ void * delete_r(element * fs) {
     }
     if(fs->nChilds != 0) free(fs->childs);
     if(fs->text != NULL) free(fs->text);
+    free(fs->name);
     free(fs);
 }
 
@@ -254,7 +251,7 @@ void * delete(element * fs, char * command, int all) {
 }
 
 int search(element * fs, char * path, char * name) {
-    char newPath[MAXHEIGHT*MAXNAME];
+    char newPath[4095];
     searchList * newList = NULL;
     element * el;
     int i, finishedFlag = 0;
@@ -288,7 +285,6 @@ int main() {
     searchList *supportList;
     int i;
     root.type = 0;
-    strcpy(root.name, "root");
     while (1) {
         fgets(command, 40000, stdin);
         if(0 == strncmp(command, "create_dir", 10)) {
