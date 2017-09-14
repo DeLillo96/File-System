@@ -69,14 +69,14 @@ element * getLastElement(element * fs, char * path) {
     while (1) {
         needle = getNeedle(path, 0);
         length = strlen(needle) + 1;
-        lenPath = strlen(path);
-        if(length != lenPath){
+        lenPath -= length;
+        if(lenPath > 0){
             if(fs->type == 0) {
                 for(i = 0; i < fs->nChilds; i++) {
                     probeDir = fs->childs[i];
                     if(0 == strcmp(probeDir->name, needle)) {
                         free(needle);
-                        needle = substr(path, length, lenPath);
+                        needle = substr(path, length, (lenPath + length));
                         if(flag != 2) free(path);
                         path = needle;
                         fs = probeDir;
