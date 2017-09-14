@@ -20,56 +20,42 @@ searchList *searchPaths, *probeList;
 
 char * substr(char * string, int startIndex, int offset) {
     char * newString;
-
-    if(startIndex < offset) {
-        offset -= startIndex;
-        newString = (char *)malloc(offset + 1);
-        memcpy(newString, &string[startIndex], offset);
-        newString[offset] = '\0';
-        return newString;
-    } else return NULL;
+    offset -= startIndex;
+    newString = (char *)malloc(offset + 1);
+    memcpy(newString, &string[startIndex], offset);
+    newString[offset] = '\0';
+    return newString;
 }
 
-char * getNeedle(char * path, int reverse) {
-    int i, startIndex = 1, lenPath = strlen(path);
-
-    if(reverse == 1) {
-        for(i = lenPath; i > 0; i--){
-            if(path[i] == '/') {
-                startIndex = i;
-                return substr(path, (i + 1), lenPath);
-            }
-        }
-    }
-    for (i = startIndex; i < lenPath; i ++) {
-        if(path[i] == '\0' || path[i] == '/') break;
-    }
-    return substr(path, startIndex, i);
+char * getLastNeedle(char * path) {
+    short int i, lenPath = strlen(path);
+    i = lenPath;
+    while(path[i] != '/') i--;
+    return substr(path, i + 1, lenPath);
 }
 
 char * getText(char * path) {
-    int i, endIndex = (strlen(path) - 2);
-
-    for (i = endIndex; i > 0; i --) {
-        if(path[i] == '"') {
-            break;
-        }
-    }
-    return substr(path, (i + 1), (endIndex + 1));
+    short int i, endIndex = (strlen(path) - 2);
+    i = endIndex;
+    while(path[i] != '"') i--;
+    return substr(path, i + 1, endIndex + 1);
 }
 
 element * getLastElement(element * fs, char * path) {
     element * probeDir;
     char * needle;
-    int length , i, lenPath = strlen(path), flag = 2;
+    int length, lenPath = strlen(path), flag = 2;
 
     while (1) {
-        needle = getNeedle(path, 0);
-        length = strlen(needle) + 1;
+        length = 1;
+        while (path[length] != '\0' && path[length] != '/') {
+            length++;
+        }
+        needle = substr(path, 1, length);
         lenPath -= length;
         if(lenPath > 0){
             if(fs->type == 0) {
-                for(i = 0; i < fs->nChilds; i++) {
+                for(int i = 0; i < fs->nChilds; i++) {
                     probeDir = fs->childs[i];
                     if(0 == strcmp(probeDir->name, needle)) {
                         free(needle);
@@ -106,7 +92,7 @@ void * create(element * fs, char * command, int type) {
         printf("no\n");
         return NULL;
     }
-    needle = getNeedle(command, 1);
+    needle = getLastNeedle(command);
     for(i = 0; i < last->nChilds; i++) {
         elem = last->childs[i];
         if(elem->type == type) {
@@ -138,8 +124,8 @@ void * create(element * fs, char * command, int type) {
 void * readFile(element * fs, char * command) {
     element * last = getLastElement(fs, command);
     element * el;
-    char* needle  = getNeedle(command, 1);
-    int i;
+    char* needle  = getLastNeedle(command);
+    short int i;
 
     if(last == NULL) {
         free(needle);
@@ -178,7 +164,7 @@ void * writeFile(element * fs, char * command) {
         printf("no\n");
         return NULL;
     }
-    needle = getNeedle(path, 1);
+    needle = getLastNeedle(path);
     for(i = 0; i < last->nChilds; i++) {
         el = last->childs[i];
         if(el->type == 1) {
@@ -220,7 +206,7 @@ void * delete(element * fs, char * command, int all) {
         printf("no\n");
         return NULL;
     }
-    needle = getNeedle(command, 1);
+    needle = getLastNeedle(command);
     for(i = 0; i < last->nChilds; i++) {
         el = last->childs[i];
         if(0 == strcmp(el->name, needle)) {
@@ -281,12 +267,12 @@ int search(element * fs, char * path, char * name) {
 
 int main() {
     element root;
-    char command[40000], * supportString;
+    char command[30000], * supportString;
     searchList *supportList;
-    int i;
+    short int i;
     root.type = 0;
     while (1) {
-        fgets(command, 40000, stdin);
+        fgets(command, 30000, stdin);
         if(0 == strncmp(command, "create_dir", 10)) {
             i = 11;
             while (command[i] == ' ') {
@@ -365,7 +351,6 @@ int main() {
             } else printf("no\n");
             continue;
         }
-        if(0 == strncmp(command, "exit", 4)) break;
+        if(0 == strncmp(command, "exit", 4)) exit(0);
     }
-    return 0;
 }
