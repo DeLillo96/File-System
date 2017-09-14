@@ -3,7 +3,7 @@
 #include <string.h>
 
 typedef struct element_str {
-    int type;
+    char type;
     char *name;
     struct element_str **childs;
     int nChilds;
@@ -34,17 +34,10 @@ char * getLastNeedle(char * path) {
     return substr(path, i + 1, lenPath);
 }
 
-char * getText(char * path) {
-    short int i, endIndex = (strlen(path) - 2);
-    i = endIndex;
-    while(path[i] != '"') i--;
-    return substr(path, i + 1, endIndex + 1);
-}
-
 element * getLastElement(element * fs, char * path) {
     element * probeDir;
     char * needle;
-    int length, lenPath = strlen(path), flag = 2;
+    short int length, lenPath = strlen(path), flag = 2;
 
     while (1) {
         length = 1;
@@ -83,15 +76,15 @@ element * getLastElement(element * fs, char * path) {
 
 void * create(element * fs, char * command, int type) {
     element * last = getLastElement(fs, command);
-    element * new, * elem;
-    char * needle;
-    int i;
-
     if(last == NULL) {
         free(command);
         printf("no\n");
         return NULL;
     }
+    element * new, * elem;
+    char * needle;
+    short int i;
+
     needle = getLastNeedle(command);
     for(i = 0; i < last->nChilds; i++) {
         elem = last->childs[i];
@@ -153,9 +146,10 @@ void * readFile(element * fs, char * command) {
 
 void * writeFile(element * fs, char * command) {
     element * el;
-    char * needle, * text = getText(command), * path = substr(command, 0, strlen(command) - strlen(text) - 3);
+    short int strCmd = (strlen(command) - 2), i = strCmd;
+    while(command[i] != '"') i--;
+    char * needle, * text = substr(command, i + 1, strCmd + 1), * path = substr(command, 0, i - 1);
     element * last = getLastElement(fs, path);
-    int i;
 
     if(last == NULL) {
         free(path);
@@ -187,19 +181,21 @@ void * writeFile(element * fs, char * command) {
 }
 
 void * delete_r(element * fs) {
-    for(int i = 0; i < fs->nChilds; i++) {
-        delete_r(fs->childs[i]);
+    if(fs->nChilds != 0){
+        for(int i = 0; i < fs->nChilds; i++) {
+            delete_r(fs->childs[i]);
+        }
+        free(fs->childs);
     }
-    if(fs->nChilds != 0) free(fs->childs);
     if(fs->text != NULL) free(fs->text);
     free(fs->name);
     free(fs);
 }
 
 void * delete(element * fs, char * command, int all) {
-    element * el, * last = getLastElement(fs, command);;
+    element * el, * last = getLastElement(fs, command);
     char * needle;
-    int i;
+    short int i;
 
     if(last == NULL) {
         free(command);
@@ -237,10 +233,11 @@ void * delete(element * fs, char * command, int all) {
 }
 
 int search(element * fs, char * path, char * name) {
+    if(fs->nChilds == 0) return 0;
     char newPath[4095];
     searchList * newList = NULL;
     element * el;
-    int i, finishedFlag = 0;
+    short int i, finishedFlag = 0;
 
     for (i = 0; i < fs->nChilds; i++) {
         strcpy(newPath, path);
@@ -267,12 +264,12 @@ int search(element * fs, char * path, char * name) {
 
 int main() {
     element root;
-    char command[30000], * supportString;
+    char command[7000], * supportString;
     searchList *supportList;
     short int i;
     root.type = 0;
     while (1) {
-        fgets(command, 30000, stdin);
+        fgets(command, 7000, stdin);
         if(0 == strncmp(command, "create_dir", 10)) {
             i = 11;
             while (command[i] == ' ') {
