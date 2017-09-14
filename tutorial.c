@@ -29,41 +29,34 @@ char * substr(char * string, int startIndex, int offset) {
 
 char * getLastNeedle(char * path) {
     short int i, lenPath = strlen(path);
-    i = lenPath;
-    while(path[i] != '/') i--;
+    for(i = lenPath; path[i] != '/'; i--) {}
     return substr(path, i + 1, lenPath);
 }
 
 element * getLastElement(element * fs, char * path) {
     element * probeDir;
-    char * needle;
-    short int length, lenPath = strlen(path), flag = 2;
+    char * needle, flag;
+    short int length, lenPath = strlen(path), i;
 
-    while (1) {
-        length = 1;
-        while (path[length] != '\0' && path[length] != '/') {
-            length++;
-        }
+    for(flag = 0;;flag = 0) {
+        for (length = 1; path[length] != '\0' && path[length] != '/'; length++) {}
         needle = substr(path, 1, length);
         lenPath -= length;
         if(lenPath > 0){
             if(fs->type == 0) {
-                for(int i = 0; i < fs->nChilds; i++) {
+                for(i = 0; i < fs->nChilds; i++) {
                     probeDir = fs->childs[i];
                     if(0 == strcmp(probeDir->name, needle)) {
                         free(needle);
                         needle = substr(path, length, (lenPath + length));
-                        if(flag != 2) free(path);
+                        free(path);
                         path = needle;
                         fs = probeDir;
                         flag = 1;
                         break;
                     }
                 }
-                if(flag == 1) {
-                    flag = 0;
-                    continue;
-                }
+                if(flag == 1) continue;
             }
             free(needle);
             return NULL;
@@ -74,24 +67,21 @@ element * getLastElement(element * fs, char * path) {
     }
 }
 
-void * create(element * fs, char * command, int type) {
+void * create(element * fs, char * command, char type) {
+    char * needle = getLastNeedle(command);
     element * last = getLastElement(fs, command);
     if(last == NULL) {
-        free(command);
         printf("no\n");
         return NULL;
     }
     element * new, * elem;
-    char * needle;
     short int i;
 
-    needle = getLastNeedle(command);
     for(i = 0; i < last->nChilds; i++) {
         elem = last->childs[i];
         if(elem->type == type) {
             if(0 == strcmp(elem->name, needle)) {
                 free(needle);
-                free(command);
                 printf("no\n");
                 return NULL;
             }
@@ -109,20 +99,18 @@ void * create(element * fs, char * command, int type) {
     }
     last->childs[ last->nChilds ] = new;
     last->nChilds++;
-    free(command);
     printf("ok\n");
     return NULL;
 }
 
 void * readFile(element * fs, char * command) {
+    char* needle  = getLastNeedle(command);
     element * last = getLastElement(fs, command);
     element * el;
-    char* needle  = getLastNeedle(command);
     short int i;
 
     if(last == NULL) {
         free(needle);
-        free(command);
         printf("no\n");
         return NULL;
     }
@@ -133,46 +121,40 @@ void * readFile(element * fs, char * command) {
                 if(el->text != NULL) printf("contenuto %s\n", el->text);
                 else printf("contenuto \n");
                 free(needle);
-                free(command);
                 return NULL;
             }
         }
     }
     free(needle);
-    free(command);
     printf("no\n");
     return NULL;
 }
 
 void * writeFile(element * fs, char * command) {
     element * el;
-    short int strCmd = (strlen(command) - 2), i = strCmd;
-    while(command[i] != '"') i--;
-    char * needle, * text = substr(command, i + 1, strCmd + 1), * path = substr(command, 0, i - 1);
+    short int strCmd = (strlen(command) - 2), i;
+    for(i = strCmd;command[i] != '"'; i--){}
+    char * text = substr(command, i + 1, strCmd + 1), * path = substr(command, 0, i - 1), * needle= getLastNeedle(path);
     element * last = getLastElement(fs, path);
 
     if(last == NULL) {
-        free(path);
         free(command);
         free(text);
         printf("no\n");
         return NULL;
     }
-    needle = getLastNeedle(path);
     for(i = 0; i < last->nChilds; i++) {
         el = last->childs[i];
         if(el->type == 1) {
             if(0 == strcmp(el->name, needle)) {
                 el->text = text;
                 printf("ok %d\n", (int)strlen(text));
-                free(path);
                 free(needle);
                 free(command);
                 return NULL;
             }
         }
     }
-    free(path);
     free(needle);
     free(command);
     free(text);
@@ -193,16 +175,14 @@ void * delete_r(element * fs) {
 }
 
 void * delete(element * fs, char * command, int all) {
+    char * needle = getLastNeedle(command);
     element * el, * last = getLastElement(fs, command);
-    char * needle;
     short int i;
 
     if(last == NULL) {
-        free(command);
         printf("no\n");
         return NULL;
     }
-    needle = getLastNeedle(command);
     for(i = 0; i < last->nChilds; i++) {
         el = last->childs[i];
         if(0 == strcmp(el->name, needle)) {
@@ -223,12 +203,10 @@ void * delete(element * fs, char * command, int all) {
             }
             free(el);
             free(needle);
-            free(command);
             printf("ok\n");
             return NULL;
         }
     }
-    free(command);
     printf("no\n");
 }
 
@@ -268,71 +246,50 @@ int main() {
     searchList *supportList;
     short int i;
     root.type = 0;
-    while (1) {
+    for(;;) {
         fgets(command, 7000, stdin);
-        if(0 == strncmp(command, "create_dir", 10)) {
-            i = 11;
-            while (command[i] == ' ') {
-                i++;
-            }
+        if(0 == strncmp(command, "create_", 7)) {
+            for(i = 11; command[i] == ' '; i++) {}
             create(&root, substr(command, i, strlen(command) - 1), 0);
             continue;
         } else {
-            if(0 == strncmp(command, "create", 6)){
-                i = 7;
-                while (command[i] == ' ') {
-                    i++;
-                }
+            if(command[0] == 'c'){
+                for(i = 7; command[i] == ' '; i++) {}
                 create(&root, substr(command, i, strlen(command) - 1), 1);
                 continue;
             }
         }
-        if(0 == strncmp(command, "read", 4)) {
-            i = 5;
-            while (command[i] == ' ') {
-                i++;
-            }
+        if(command[0] == 'r') {
+            for(i = 5; command[i] == ' '; i++) {}
             readFile(&root, substr(command, i, strlen(command) - 1));
             continue;
         }
-        if(0 == strncmp(command, "write", 5)) {
-            i = 6;
-            while (command[i] == ' ') {
-                i++;
-            }
+        if(command[0] == 'w') {
+            for(i = 6; command[i] == ' '; i++) {}
             writeFile(&root, substr(command, i, strlen(command) - 1));
             continue;
         }
-        if(0 == strncmp(command, "delete_r", 8)) {
-            i = 9;
-            while (command[i] == ' ') {
-                i++;
-            }
+        if(0 == strncmp(command, "delete_", 7)) {
+            for(i = 9; command[i] == ' '; i++) {}
             delete(&root, substr(command, i, strlen(command) - 1), 1);
             continue;
         } else {
-            if(0 == strncmp(command, "delete", 6)) {
-                i = 7;
-                while (command[i] == ' ') {
-                    i++;
-                }
+            if(command[0] == 'd') {
+                for(i = 7; command[i] == ' '; i++) {}
                 delete(&root, substr(command, i, strlen(command) - 1), 0);
                 continue;
             }
         }
-        if(0 == strncmp(command, "find", 4)) {
+        if(command[0] == 'f') {
             searchPaths = (searchList *)malloc(sizeof(searchList));
             searchPaths->prev = NULL;
             probeList = searchPaths;
-            i = 5;
-            while (command[i] == ' ') {
-                i++;
-            }
+            for(i = 5; command[i] == ' '; i++) {}
             if(0 != search(&root, "", substr(command, i, strlen(command) - 1))) {
                 supportList = searchPaths;
-                while(supportList->text != NULL) {
+                for(;supportList->text != NULL;) {
                     probeList = supportList->next;
-                    while(probeList->text != NULL) {
+                    for(;probeList->text != NULL;) {
                         if(strcmp(supportList->text, probeList->text) > 0) {
                             supportString = supportList->text;
                             supportList->text = probeList->text;
@@ -348,6 +305,6 @@ int main() {
             } else printf("no\n");
             continue;
         }
-        if(0 == strncmp(command, "exit", 4)) exit(0);
+        if(command[0] == 'e') exit(0);
     }
 }
