@@ -10,7 +10,7 @@ typedef struct element_str {
     char name[MAXNAME];
     struct element_str **childs;
     int nChilds;
-    char text[512];
+    char *text;
 } element;
 
 typedef struct searchList_str {
@@ -125,7 +125,7 @@ void * create(element * fs, char * command, int type) {
     new->type = type;
     new->nChilds = 0;
     strcpy(new->name, needle);
-    strcpy(new->text, "\0");
+    new->text = NULL;
     if(last->nChilds > 0) {
         last->childs = (element**)realloc(last->childs, (last->nChilds + 1)*sizeof(element *));
     } else {
@@ -155,7 +155,8 @@ void * readFile(element * fs, char * command) {
         el = last->childs[i];
         if(el->type == 1) {
             if(0 == strcmp(el->name, needle)) {
-                printf("contenuto %s\n", el->text);
+                if(el->text != NULL) printf("contenuto %s\n", el->text);
+                else printf("contenuto \n");
                 free(needle);
                 free(command);
                 return NULL;
@@ -186,12 +187,11 @@ void * writeFile(element * fs, char * command) {
         el = last->childs[i];
         if(el->type == 1) {
             if(0 == strcmp(el->name, needle)) {
-                strcpy(el->text, text);
+                el->text = text;
                 printf("ok %d\n", (int)strlen(text));
                 free(path);
                 free(needle);
                 free(command);
-                free(text);
                 return NULL;
             }
         }
@@ -209,6 +209,7 @@ void * delete_r(element * fs) {
         delete_r(fs->childs[i]);
     }
     if(fs->nChilds != 0) free(fs->childs);
+    if(fs->text != NULL) free(fs->text);
     free(fs);
 }
 
