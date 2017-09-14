@@ -206,9 +206,9 @@ void * writeFile(element * fs, char * command) {
 
 void * delete_r(element * fs) {
     for(int i = 0; i < fs->nChilds; i++) {
-        if(fs->childs[i]->nChilds > 0) delete_r(fs->childs[i]);
+        delete_r(fs->childs[i]);
     }
-    free(fs->childs);
+    if(fs->nChilds != 0) free(fs->childs);
     free(fs);
 }
 
