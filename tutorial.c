@@ -17,6 +17,7 @@ typedef struct searchList_str {
 } searchList;
 
 searchList *searchPaths, *probeList;
+element root;
 
 char * substr(char * string, int startIndex, int offset) {
     char * newString;
@@ -33,17 +34,17 @@ char * getLastNeedle(char * path) {
     return substr(path, i + 1, lenPath);
 }
 
-element * getLastElement(element * fs, char * path) {
-    element * probeDir;
+element * getLastElement(char * path) {
+    element * probeDir , * fs = &root;
     char * needle, flag;
     short int length, lenPath = strlen(path), i;
 
     for(flag = 0;;flag = 0) {
-        for (length = 1; path[length] != '\0' && path[length] != '/'; length++) {}
-        needle = substr(path, 1, length);
-        lenPath -= length;
-        if(lenPath > 0){
+        for (length = 1; path[length] != '\0' && path[length] != '/'; length++) lenPath--;
+        lenPath --;
+        if(lenPath > 0) {
             if(fs->type == 0) {
+                needle = substr(path, 1, length);
                 for(i = 0; i < fs->nChilds; i++) {
                     probeDir = fs->childs[i];
                     if(0 == strcmp(probeDir->name, needle)) {
@@ -57,26 +58,25 @@ element * getLastElement(element * fs, char * path) {
                     }
                 }
                 if(flag == 1) continue;
+                free(needle);
             }
-            free(needle);
             return NULL;
         } else {
-            free(needle);
             return fs;
         }
     }
 }
 
-void * create(element * fs, char * command, char type) {
+void * create(char * command, char type) {
     char * needle = getLastNeedle(command);
-    element * last = getLastElement(fs, command);
+    element * last = getLastElement(command);
+    element * new, * elem;
+    short int i;
+
     if(last == NULL) {
         printf("no\n");
         return NULL;
     }
-    element * new, * elem;
-    short int i;
-
     for(i = 0; i < last->nChilds; i++) {
         elem = last->childs[i];
         if(elem->type == type) {
@@ -103,9 +103,9 @@ void * create(element * fs, char * command, char type) {
     return NULL;
 }
 
-void * readFile(element * fs, char * command) {
+void * readFile(char * command) {
     char* needle  = getLastNeedle(command);
-    element * last = getLastElement(fs, command);
+    element * last = getLastElement(command);
     element * el;
     short int i;
 
@@ -130,15 +130,14 @@ void * readFile(element * fs, char * command) {
     return NULL;
 }
 
-void * writeFile(element * fs, char * command) {
+void * writeFile(char * command) {
     element * el;
     short int strCmd = (strlen(command) - 2), i;
-    for(i = strCmd;command[i] != '"'; i--){}
+    for(i = strCmd; command[i] != '"'; i--){}
     char * text = substr(command, i + 1, strCmd + 1), * path = substr(command, 0, i - 1), * needle= getLastNeedle(path);
-    element * last = getLastElement(fs, path);
+    element * last = getLastElement(path);
 
     if(last == NULL) {
-        free(command);
         free(text);
         printf("no\n");
         return NULL;
@@ -174,12 +173,13 @@ void * delete_r(element * fs) {
     free(fs);
 }
 
-void * delete(element * fs, char * command, int all) {
+void * delete(char * command, int all) {
     char * needle = getLastNeedle(command);
-    element * el, * last = getLastElement(fs, command);
+    element * el, * last = getLastElement(command);
     short int i;
 
     if(last == NULL) {
+        free(needle);
         printf("no\n");
         return NULL;
     }
@@ -241,44 +241,42 @@ int search(element * fs, char * path, char * name) {
 }
 
 int main() {
-    element root;
     char command[7000], * supportString;
     searchList *supportList;
     short int i;
     root.type = 0;
     for(;;) {
         fgets(command, 7000, stdin);
-        if(0 == strncmp(command, "create_", 7)) {
-            for(i = 11; command[i] == ' '; i++) {}
-            create(&root, substr(command, i, strlen(command) - 1), 0);
-            continue;
-        } else {
-            if(command[0] == 'c'){
-                for(i = 7; command[i] == ' '; i++) {}
-                create(&root, substr(command, i, strlen(command) - 1), 1);
+        
+        if(command[0] == 'c') {
+            if(command[6] == '_') {
+                for(i = 11; command[i] == ' '; i++) {}
+                create(substr(command, i, strlen(command) - 1), 0);
                 continue;
             }
+            for(i = 7; command[i] == ' '; i++) {}
+            create(substr(command, i, strlen(command) - 1), 1);
+            continue;
         }
         if(command[0] == 'r') {
             for(i = 5; command[i] == ' '; i++) {}
-            readFile(&root, substr(command, i, strlen(command) - 1));
+            readFile(substr(command, i, strlen(command) - 1));
             continue;
         }
         if(command[0] == 'w') {
             for(i = 6; command[i] == ' '; i++) {}
-            writeFile(&root, substr(command, i, strlen(command) - 1));
+            writeFile(substr(command, i, strlen(command) - 1));
             continue;
         }
-        if(0 == strncmp(command, "delete_", 7)) {
-            for(i = 9; command[i] == ' '; i++) {}
-            delete(&root, substr(command, i, strlen(command) - 1), 1);
-            continue;
-        } else {
-            if(command[0] == 'd') {
-                for(i = 7; command[i] == ' '; i++) {}
-                delete(&root, substr(command, i, strlen(command) - 1), 0);
+        if(command[0] == 'd') {
+            if(command[6] == '_') {
+                for(i = 9; command[i] == ' '; i++) {}
+                delete(substr(command, i, strlen(command) - 1), 1);
                 continue;
             }
+            for(i = 7; command[i] == ' '; i++) {}
+            delete(substr(command, i, strlen(command) - 1), 0);
+            continue;
         }
         if(command[0] == 'f') {
             searchPaths = (searchList *)malloc(sizeof(searchList));
