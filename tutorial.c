@@ -19,11 +19,10 @@ typedef struct searchList_str {
 searchList *searchPaths, *probeList;
 element root;
 
-char * substr(char * string, int startIndex, int offset) {
+char * substr(char * string, int offset) {
     char * newString;
-    offset -= startIndex;
     newString = (char *)malloc(offset + 1);
-    memcpy(newString, &string[startIndex], offset);
+    memcpy(newString, string, offset);
     newString[offset] = '\0';
     return newString;
 }
@@ -31,7 +30,8 @@ char * substr(char * string, int startIndex, int offset) {
 char * getLastNeedle(char * path) {
     short int i, lenPath = strlen(path);
     for(i = lenPath; path[i] != '/'; i--) {}
-    return substr(path, i + 1, lenPath);
+    i++;
+    return substr(&path[i], (lenPath - i));
 }
 
 element * getLastElement(char * path) {
@@ -44,12 +44,12 @@ element * getLastElement(char * path) {
         lenPath --;
         if(lenPath > 0) {
             if(fs->type == 0) {
-                needle = substr(path, 1, length);
+                needle = substr(&path[1], length - 1);
                 for(i = 0; i < fs->nChilds; i++) {
                     probeDir = fs->childs[i];
                     if(0 == strcmp(probeDir->name, needle)) {
                         free(needle);
-                        needle = substr(path, length, (lenPath + length));
+                        needle = substr(&path[length], lenPath);
                         free(path);
                         path = needle;
                         fs = probeDir;
@@ -81,21 +81,20 @@ void * create(char * command, char type) {
         elem = last->childs[i];
         if(elem->type == type) {
             if(0 == strcmp(elem->name, needle)) {
-                free(needle);
                 printf("no\n");
                 return NULL;
             }
         }
     }
-    new = (element *)malloc(sizeof(element));
+    new = (element *)malloc(40);
     new->type = type;
     new->nChilds = 0;
     new->name = needle;
     new->text = NULL;
     if(last->nChilds > 0) {
-        last->childs = (element**)realloc(last->childs, (last->nChilds + 1)*sizeof(element *));
+        last->childs = (element**)realloc(last->childs, (last->nChilds + 1)*8);
     } else {
-        last->childs = (element**)malloc(sizeof(element *));
+        last->childs = (element**)malloc(8);
     }
     last->childs[ last->nChilds ] = new;
     last->nChilds++;
@@ -110,7 +109,6 @@ void * readFile(char * command) {
     short int i;
 
     if(last == NULL) {
-        free(needle);
         printf("no\n");
         return NULL;
     }
@@ -134,11 +132,10 @@ void * writeFile(char * command) {
     element * el;
     short int strCmd = (strlen(command) - 2), i;
     for(i = strCmd; command[i] != '"'; i--){}
-    char * text = substr(command, i + 1, strCmd + 1), * path = substr(command, 0, i - 1), * needle= getLastNeedle(path);
+    char * text = substr(&command[i + 1], strCmd-i), * path = substr(command, i - 1), * needle= getLastNeedle(path);
     element * last = getLastElement(path);
 
     if(last == NULL) {
-        free(text);
         printf("no\n");
         return NULL;
     }
@@ -179,7 +176,6 @@ void * delete(char * command, int all) {
     short int i;
 
     if(last == NULL) {
-        free(needle);
         printf("no\n");
         return NULL;
     }
@@ -197,7 +193,7 @@ void * delete(char * command, int all) {
                 last->childs[i] = last->childs[last->nChilds];
             }
             if(last->nChilds > 0) {
-                last->childs = (element **)realloc(last->childs, last->nChilds*sizeof(element *));
+                last->childs = (element **)realloc(last->childs, last->nChilds*8);
             } else {
                 free(last->childs);
             }
@@ -223,7 +219,7 @@ int search(element * fs, char * path, char * name) {
         strcat(newPath, "/");
         strcat(newPath, el->name);
         if(0 == strcmp(name, el->name)){
-            newList = (searchList *)malloc(sizeof(searchList));
+            newList = (searchList *)malloc(24);
             probeList->text = (char *)malloc(strlen(newPath) + 1);
             strcpy(probeList->text, newPath);
             probeList->next = newList;
@@ -241,49 +237,48 @@ int search(element * fs, char * path, char * name) {
 }
 
 int main() {
-    char command[7000], * supportString;
+    char command[4000], * supportString;
     searchList *supportList;
     short int i;
     root.type = 0;
     for(;;) {
-        fgets(command, 7000, stdin);
-        
+        fgets(command, 4000, stdin);
         if(command[0] == 'c') {
             if(command[6] == '_') {
                 for(i = 11; command[i] == ' '; i++) {}
-                create(substr(command, i, strlen(command) - 1), 0);
+                create(substr(&command[i], strlen(command)-i-1), 0);
                 continue;
             }
             for(i = 7; command[i] == ' '; i++) {}
-            create(substr(command, i, strlen(command) - 1), 1);
+            create(substr(&command[i], strlen(command)-i-1), 1);
             continue;
         }
         if(command[0] == 'r') {
             for(i = 5; command[i] == ' '; i++) {}
-            readFile(substr(command, i, strlen(command) - 1));
+            readFile(substr(&command[i], strlen(command)-i-1));
             continue;
         }
         if(command[0] == 'w') {
             for(i = 6; command[i] == ' '; i++) {}
-            writeFile(substr(command, i, strlen(command) - 1));
+            writeFile(substr(&command[i], strlen(command)-i-1));
             continue;
         }
         if(command[0] == 'd') {
             if(command[6] == '_') {
                 for(i = 9; command[i] == ' '; i++) {}
-                delete(substr(command, i, strlen(command) - 1), 1);
+                delete(substr(&command[i], strlen(command)-i-1), 1);
                 continue;
             }
             for(i = 7; command[i] == ' '; i++) {}
-            delete(substr(command, i, strlen(command) - 1), 0);
+            delete(substr(&command[i], strlen(command)-i-1), 0);
             continue;
         }
         if(command[0] == 'f') {
-            searchPaths = (searchList *)malloc(sizeof(searchList));
+            searchPaths = (searchList *)malloc(24);
             searchPaths->prev = NULL;
             probeList = searchPaths;
             for(i = 5; command[i] == ' '; i++) {}
-            if(0 != search(&root, "", substr(command, i, strlen(command) - 1))) {
+            if(0 != search(&root, "", substr(&command[i], strlen(command)-i-1))) {
                 supportList = searchPaths;
                 for(;supportList->text != NULL;) {
                     probeList = supportList->next;
