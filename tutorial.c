@@ -243,37 +243,39 @@ int main() {
     root.type = 0;
     for(;;) {
         fgets(command, 4000, stdin);
-        if(command[0] == 'c') {
-            if(command[6] == '_') {
+        if(0 == strncmp(command, "create", 6)) {
+            if(0 == strncmp(command, "create_dir", 10)) {
                 for(i = 11; command[i] == ' '; i++) {}
                 create(substr(&command[i], strlen(command)-i-1), 0);
                 continue;
+            } else {
+                for(i = 7; command[i] == ' '; i++) {}
+                create(substr(&command[i], strlen(command)-i-1), 1);
+                continue;
             }
-            for(i = 7; command[i] == ' '; i++) {}
-            create(substr(&command[i], strlen(command)-i-1), 1);
-            continue;
         }
-        if(command[0] == 'r') {
+        if(0 == strncmp(command, "read", 4)) {
             for(i = 5; command[i] == ' '; i++) {}
             readFile(substr(&command[i], strlen(command)-i-1));
             continue;
         }
-        if(command[0] == 'w') {
+        if(0 == strncmp(command, "write", 5)) {
             for(i = 6; command[i] == ' '; i++) {}
             writeFile(substr(&command[i], strlen(command)-i-1));
             continue;
         }
-        if(command[0] == 'd') {
-            if(command[6] == '_') {
+        if(0 == strncmp(command, "delete", 6)) {
+            if(0 == strncmp(command, "delete_dir", 10)) {
                 for(i = 9; command[i] == ' '; i++) {}
                 delete(substr(&command[i], strlen(command)-i-1), 1);
                 continue;
+            } else {
+                for(i = 7; command[i] == ' '; i++) {}
+                delete(substr(&command[i], strlen(command)-i-1), 0);
+                continue;
             }
-            for(i = 7; command[i] == ' '; i++) {}
-            delete(substr(&command[i], strlen(command)-i-1), 0);
-            continue;
         }
-        if(command[0] == 'f') {
+        if(0 == strncmp(command, "find", 4)) {
             searchPaths = (searchList *)malloc(24);
             searchPaths->prev = NULL;
             probeList = searchPaths;
@@ -298,6 +300,6 @@ int main() {
             } else printf("no\n");
             continue;
         }
-        if(command[0] == 'e') exit(0);
+        if(0 == strncmp(command, "exit", 4)) exit(0);
     }
 }
